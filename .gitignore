@@ -1,0 +1,10 @@
+node_modules/
+dist/
+build/
+*.db
+*.db-journal
+.env
+.expo/
+android/
+ios/
+coverage/

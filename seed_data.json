@@ -1,0 +1,306 @@
+{
+  "event": {
+    "name": "Béatitudes Ados — Live It Rally",
+    "town": "Gharzouz",
+    "eventStartIso": "2026-07-01T16:00:00+03:00",
+    "durationMinutes": 210,
+    "hqPhone": "+961-XX-XXXXXX",
+    "emergencyPhone": "+961-XX-XXXXXX",
+    "helpHintsPerTeam": 3,
+    "serverUrl": "https://REPLACE_WITH_YOUR_SERVER",
+    "qrPayloadFormat": "RALLY:<stationId>:<START|END>"
+  },
+  "stations": [
+    {
+      "id": "puzzle",
+      "name": "Puzzle",
+      "category": "cat1",
+      "lat": 34.1838362666381,
+      "lng": 35.669463867484815,
+      "clue": "Go Ask the Dead",
+      "startCode": "RALLY:puzzle:START",
+      "endCode": "RALLY:puzzle:END",
+      "basePoints": 100
+    },
+    {
+      "id": "build",
+      "name": "Build, create to solve",
+      "category": "cat1",
+      "lat": 34.184435656720716,
+      "lng": 35.6694908224812,
+      "clue": "Use Map: 18-5",
+      "startCode": "RALLY:build:START",
+      "endCode": "RALLY:build:END",
+      "basePoints": 100
+    },
+    {
+      "id": "general_knowledge",
+      "name": "General Knowledge",
+      "category": "cat1",
+      "lat": 34.1846838435311,
+      "lng": 35.67172765731812,
+      "clue": "3emoud lna3ewer",
+      "startCode": "RALLY:general_knowledge:START",
+      "endCode": "RALLY:general_knowledge:END",
+      "basePoints": 100
+    },
+    {
+      "id": "ai_or_not",
+      "name": "AI or not",
+      "category": "cat1",
+      "lat": 34.18343687100565,
+      "lng": 35.67003787377587,
+      "clue": "I drink sunlight all day long, Yet I never thirst at night. I turn golden rays to power, Go find me shining bright.",
+      "startCode": "RALLY:ai_or_not:START",
+      "endCode": "RALLY:ai_or_not:END",
+      "basePoints": 100
+    },
+    {
+      "id": "ask_locals",
+      "name": "Ask Locals",
+      "category": "cat1",
+      "lat": 34.184164635740125,
+      "lng": 35.67071376874862,
+      "clue": "Go to pray",
+      "startCode": "RALLY:ask_locals:START",
+      "endCode": "RALLY:ask_locals:END",
+      "basePoints": 100
+    },
+    {
+      "id": "local_scavenger",
+      "name": "Local Scavenger",
+      "category": "cat1",
+      "lat": 34.18445306215237,
+      "lng": 35.67101419785729,
+      "clue": "Public Garden",
+      "startCode": "RALLY:local_scavenger:START",
+      "endCode": "RALLY:local_scavenger:END",
+      "basePoints": 100
+    },
+    {
+      "id": "physical",
+      "name": "Physical challenge",
+      "category": "cat2",
+      "lat": 34.181710560359186,
+      "lng": 35.66506506639935,
+      "clue": "Go to where we waterfight",
+      "startCode": "RALLY:physical:START",
+      "endCode": "RALLY:physical:END",
+      "basePoints": 100
+    },
+    {
+      "id": "blind_taste",
+      "name": "Blind taste test",
+      "category": "cat2",
+      "lat": 34.18240324773951,
+      "lng": 35.66656730416325,
+      "clue": "Go to where we eat",
+      "startCode": "RALLY:blind_taste:START",
+      "endCode": "RALLY:blind_taste:END",
+      "basePoints": 100
+    },
+    {
+      "id": "cipher",
+      "name": "Cipher/code",
+      "category": "cat2",
+      "lat": 34.180969469450154,
+      "lng": 35.66536008497963,
+      "clue": "Use Map: 5-11",
+      "startCode": "RALLY:cipher:START",
+      "endCode": "RALLY:cipher:END",
+      "basePoints": 100
+    },
+    {
+      "id": "storytelling",
+      "name": "Storytelling",
+      "category": "cat2",
+      "lat": 34.18226132997855,
+      "lng": 35.66576304831465,
+      "clue": "Go find Mary mother of Jesus",
+      "startCode": "RALLY:storytelling:START",
+      "endCode": "RALLY:storytelling:END",
+      "basePoints": 100
+    },
+    {
+      "id": "music",
+      "name": "Music",
+      "category": "cat2",
+      "lat": 34.18160406507673,
+      "lng": 35.6642818342433,
+      "clue": "Go to where jesus prayed on the holy thursday",
+      "startCode": "RALLY:music:START",
+      "endCode": "RALLY:music:END",
+      "basePoints": 100
+    }
+  ],
+  "teams": [
+    {
+      "id": "red_a",
+      "name": "red A",
+      "color": "#D7263D",
+      "code": "REDA-2026",
+      "startCategory": "cat1",
+      "phone": "",
+      "route": [
+        "ai_or_not",
+        "puzzle",
+        "build",
+        "ask_locals",
+        "local_scavenger",
+        "general_knowledge",
+        "cipher",
+        "music",
+        "physical",
+        "storytelling",
+        "blind_taste"
+      ]
+    },
+    {
+      "id": "blue_a",
+      "name": "blue A",
+      "color": "#0372F8",
+      "code": "BLUEA-2026",
+      "startCategory": "cat1",
+      "phone": "",
+      "route": [
+        "general_knowledge",
+        "local_scavenger",
+        "ask_locals",
+        "build",
+        "puzzle",
+        "ai_or_not",
+        "blind_taste",
+        "storytelling",
+        "physical",
+        "music",
+        "cipher"
+      ]
+    },
+    {
+      "id": "green_a",
+      "name": "green A",
+      "color": "#2E8B57",
+      "code": "GREENA-2026",
+      "startCategory": "cat1",
+      "phone": "",
+      "route": [
+        "puzzle",
+        "ai_or_not",
+        "general_knowledge",
+        "local_scavenger",
+        "ask_locals",
+        "build",
+        "blind_taste",
+        "physical",
+        "music",
+        "cipher",
+        "storytelling"
+      ]
+    },
+    {
+      "id": "yellow_a",
+      "name": "yellow A",
+      "color": "#E0A92E",
+      "code": "YELLOWA-2026",
+      "startCategory": "cat1",
+      "phone": "",
+      "route": [
+        "ask_locals",
+        "general_knowledge",
+        "local_scavenger",
+        "puzzle",
+        "ai_or_not",
+        "build",
+        "storytelling",
+        "blind_taste",
+        "cipher",
+        "physical",
+        "music"
+      ]
+    },
+    {
+      "id": "red_b",
+      "name": "red B",
+      "color": "#D7263D",
+      "code": "REDB-2026",
+      "startCategory": "cat2",
+      "phone": "",
+      "route": [
+        "cipher",
+        "music",
+        "physical",
+        "storytelling",
+        "blind_taste",
+        "ai_or_not",
+        "puzzle",
+        "build",
+        "ask_locals",
+        "local_scavenger",
+        "general_knowledge"
+      ]
+    },
+    {
+      "id": "blue_b",
+      "name": "blue B",
+      "color": "#0372F8",
+      "code": "BLUEB-2026",
+      "startCategory": "cat2",
+      "phone": "",
+      "route": [
+        "blind_taste",
+        "storytelling",
+        "physical",
+        "music",
+        "cipher",
+        "general_knowledge",
+        "local_scavenger",
+        "ask_locals",
+        "build",
+        "puzzle",
+        "ai_or_not"
+      ]
+    },
+    {
+      "id": "green_b",
+      "name": "green B",
+      "color": "#2E8B57",
+      "code": "GREENB-2026",
+      "startCategory": "cat2",
+      "phone": "",
+      "route": [
+        "physical",
+        "cipher",
+        "music",
+        "blind_taste",
+        "storytelling",
+        "puzzle",
+        "build",
+        "general_knowledge",
+        "local_scavenger",
+        "ask_locals",
+        "ai_or_not"
+      ]
+    },
+    {
+      "id": "yellow_b",
+      "name": "yellow B",
+      "color": "#E0A92E",
+      "code": "YELLOWB-2026",
+      "startCategory": "cat2",
+      "phone": "",
+      "route": [
+        "storytelling",
+        "blind_taste",
+        "cipher",
+        "physical",
+        "music",
+        "puzzle",
+        "build",
+        "general_knowledge",
+        "local_scavenger",
+        "ask_locals",
+        "ai_or_not"
+      ]
+    }
+  ]
+}
