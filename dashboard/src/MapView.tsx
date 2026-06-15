@@ -2,9 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import type { AdminTeamSummary, MapCommand, MapHostMessage, MapPin, MapStationInput, Station } from '@rally/shared';
 import { buildMapHtml } from '@rally/shared';
 import { fetchStations } from './api';
+import { SERVER_URL } from './config';
 import { useLiveLocations } from './useLiveLocations';
 
-const MAP_HTML = buildMapHtml();
+// Pre-downloaded tiles are served by the backend (§M9) and layered over the OSM CDN so the
+// map keeps rendering Gharzouz if the venue's internet drops.
+const MAP_HTML = buildMapHtml({ localTileUrl: `${SERVER_URL}/tiles` });
 
 function teamTrail(team: AdminTeamSummary): string[] {
   return team.progress

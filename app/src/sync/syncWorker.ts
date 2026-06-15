@@ -18,7 +18,10 @@ export class SyncWorker {
   private running = false;
   private cycleInFlight = false;
 
-  constructor(private readonly onStateUpdate: (state: StateResponse) => void) {}
+  constructor(
+    private readonly onStateUpdate: (state: StateResponse) => void,
+    private readonly onConnectivityChange?: (online: boolean) => void,
+  ) {}
 
   start(): void {
     if (this.running) return;
@@ -69,9 +72,11 @@ export class SyncWorker {
         removeFromOutbox(response.accepted);
         this.consecutiveFailures = 0;
         this.onStateUpdate(response.state);
+        this.onConnectivityChange?.(true);
       } catch {
         incrementTries(batch.map((event) => event.uuid));
         this.consecutiveFailures += 1;
+        this.onConnectivityChange?.(false);
       }
     } finally {
       this.cycleInFlight = false;

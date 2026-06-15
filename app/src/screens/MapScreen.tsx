@@ -1,16 +1,15 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import * as Location from 'expo-location';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { WebView, type WebViewMessageEvent } from 'react-native-webview';
 import { buildMapHtml, type MapCommand, type MapHostMessage, type MapStationInput } from '@rally/shared';
 import { getCompletedCount } from '../db/progress';
 import { loadRoute } from '../db/route';
+import { getSetting } from '../db/settings';
 import type { GameStackParamList } from '../navigation/types';
 import { useApp } from '../state/AppContext';
-
-const MAP_HTML = buildMapHtml();
 
 /**
  * Shows the team's own trail of visited stations plus a live GPS dot.
@@ -22,6 +21,13 @@ export function MapScreen() {
   const { team } = useApp();
   const webviewRef = useRef<WebView>(null);
   const [ready, setReady] = useState(false);
+
+  // Pre-downloaded tiles are served by our own backend (§M9), so the map still renders
+  // Gharzouz with no internet access once they're cached by the WebView.
+  const mapHtml = useMemo(() => {
+    const serverUrl = getSetting('server_url');
+    return buildMapHtml(serverUrl ? { localTileUrl: `${serverUrl}/tiles` } : {});
+  }, []);
 
   function post(command: MapCommand) {
     webviewRef.current?.postMessage(JSON.stringify(command));
@@ -84,7 +90,7 @@ export function MapScreen() {
 
   return (
     <View style={styles.container}>
-      <WebView ref={webviewRef} source={{ html: MAP_HTML }} onMessage={onMessage} style={styles.webview} />
+      <WebView ref={webviewRef} source={{ html: mapHtml }} onMessage={onMessage} style={styles.webview} />
       <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
         <Text style={styles.backButtonText}>Back</Text>
       </TouchableOpacity>

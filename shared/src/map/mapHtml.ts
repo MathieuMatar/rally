@@ -25,14 +25,26 @@ export type MapCommand =
 /** Messages the map page posts back to its host. */
 export type MapHostMessage = { type: 'ready' };
 
+export interface MapTileConfig {
+  /**
+   * Base URL serving locally pre-downloaded tiles as `{localTileUrl}/{z}/{x}/{y}.png`
+   * (see `tools/download-tiles.ts`). When set, these are layered on top of the public
+   * OSM CDN so the map still renders Gharzouz with no internet access; missing local
+   * tiles fall back to a transparent pixel, letting the OSM layer show through.
+   */
+  localTileUrl?: string;
+}
+
+/** 1x1 transparent PNG used as `errorTileUrl` so missing local tiles don't show a broken-image icon. */
+const TRANSPARENT_PNG =
+  'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNkYAAAAAYAAjCB0C8AAAAASUVORK5CYII=';
+
 /**
  * Self-contained Leaflet page shared by the dashboard (in an <iframe>) and the app
  * (in a react-native-webview). The host drives it by posting `MapCommand`s as JSON
  * via `postMessage`; the page replies `{type:'ready'}` once Leaflet has initialized.
- *
- * DECISION: tiles load from the public OSM CDN. Offline tile bundling is M9 scope.
  */
-export function buildMapHtml(): string {
+export function buildMapHtml(tileConfig: MapTileConfig = {}): string {
   return `<!doctype html>
 <html>
   <head>
@@ -48,6 +60,8 @@ export function buildMapHtml(): string {
     <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
     <script>
       var CATEGORY_COLORS = ${JSON.stringify(MAP_CATEGORY_COLORS)};
+      var LOCAL_TILE_URL = ${JSON.stringify(tileConfig.localTileUrl ?? null)};
+      var TRANSPARENT_TILE = ${JSON.stringify(TRANSPARENT_PNG)};
 
       var map = null;
       var stationsById = {};
@@ -68,6 +82,12 @@ export function buildMapHtml(): string {
           maxZoom: 19,
           attribution: '&copy; OpenStreetMap contributors',
         }).addTo(map);
+        if (LOCAL_TILE_URL) {
+          L.tileLayer(LOCAL_TILE_URL + '/{z}/{x}/{y}.png', {
+            maxZoom: 19,
+            errorTileUrl: TRANSPARENT_TILE,
+          }).addTo(map);
+        }
       }
 
       function init(stations) {

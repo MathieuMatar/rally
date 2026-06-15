@@ -7,4 +7,5 @@ export const config = {
   organizerCode: process.env.ORGANIZER_CODE ?? 'ORGANIZER-2026',
   adminCode: process.env.ADMIN_CODE ?? 'ADMIN-2026',
   dbPath: process.env.DB_PATH ?? resolve(process.cwd(), 'data', 'rally.db'),
+  tilesPath: process.env.TILES_PATH ?? resolve(process.cwd(), 'tiles'),
 };

@@ -5,6 +5,8 @@
   "type": "module",
   "scripts": {
     "seed": "tsx seed.ts",
+    "download-tiles": "tsx download-tiles.ts",
+    "loadtest": "tsx loadtest.ts",
     "lint": "eslint ."
   },
   "dependencies": {

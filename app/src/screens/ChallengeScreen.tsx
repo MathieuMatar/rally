@@ -3,6 +3,7 @@ import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
 import { BroadcastBanner } from '../components/BroadcastBanner';
+import { OfflineBanner } from '../components/OfflineBanner';
 import { formatDuration } from '../core/countdown';
 import { useNow } from '../hooks/useNow';
 import { getStationInstructions } from '../content/stationInstructions';
@@ -11,13 +12,14 @@ import { useApp } from '../state/AppContext';
 
 export function ChallengeScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<GameStackParamList, 'Challenge'>>();
-  const { currentStation, stationStartedAt, broadcasts } = useApp();
+  const { currentStation, stationStartedAt, broadcasts, online } = useApp();
   const now = useNow();
 
   const elapsedMs = stationStartedAt != null ? Math.max(0, now - stationStartedAt) : 0;
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <OfflineBanner online={online} />
       <BroadcastBanner broadcasts={broadcasts} />
 
       <TouchableOpacity style={styles.contactLink} onPress={() => navigation.navigate('Contact')}>

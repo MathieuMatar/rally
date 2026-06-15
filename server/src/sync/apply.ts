@@ -76,6 +76,11 @@ function applyScanEnd(db: Database.Database, teamId: string, event: SyncEvent): 
     >('SELECT started_at FROM progress WHERE team_id = ? AND station_id = ?')
     .get(teamId, event.stationId);
 
+  // DECISION (§M9 clock skew): durationSec is a delta between two device-supplied
+  // timestamps from the same device during one station visit, so it's robust to the
+  // device clock being wrong in absolute terms. Scoring never reads timestamps at
+  // all — points come from `station.base_points` or an admin override — so clock
+  // skew cannot affect a team's score.
   const startedAt = existing?.started_at ?? null;
   const durationSec =
     startedAt != null ? Math.max(0, Math.round((event.clientTs - startedAt) / 1000)) : null;

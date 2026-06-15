@@ -10,3 +10,4 @@ ios/
 coverage/
 *.tsbuildinfo
 .claude/
+server/tiles/

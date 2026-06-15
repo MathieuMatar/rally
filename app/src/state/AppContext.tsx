@@ -1,5 +1,6 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
 import { AppState as RNAppState, type AppStateStatus } from 'react-native';
+import { activateKeepAwakeAsync, deactivateKeepAwake } from 'expo-keep-awake';
 import type { BroadcastMessage, EventConfig, Station } from '@rally/shared';
 import { AuthError, authTeam } from '../api/client';
 import { DEFAULT_SERVER_URL } from '../config';
@@ -48,6 +49,7 @@ interface AppState {
   lastLocation: { lat: number; lng: number } | null;
   sosAckedAt: number | null;
   error: string | null;
+  online: boolean;
 }
 
 export interface AppContextValue extends AppState {
@@ -75,6 +77,7 @@ const INITIAL_STATE: AppState = {
   lastLocation: null,
   sosAckedAt: null,
   error: null,
+  online: true,
 };
 
 const AppContext = createContext<AppContextValue | null>(null);
@@ -127,6 +130,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       lastLocation: null,
       sosAckedAt: null,
       error: null,
+      online: true,
     });
   }, []);
 
@@ -135,19 +139,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     if (state.status !== 'ready') return undefined;
 
-    const worker = new SyncWorker((syncState) => {
-      setSettings({
-        score: String(syncState.score),
-        hints_remaining: String(syncState.hintsRemaining),
-      });
-      setState((s) => ({
-        ...s,
-        score: syncState.score,
-        hintsRemaining: syncState.hintsRemaining,
-        clueOverride: syncState.clueOverride,
-        broadcasts: syncState.broadcasts,
-      }));
-    });
+    const worker = new SyncWorker(
+      (syncState) => {
+        setSettings({
+          score: String(syncState.score),
+          hints_remaining: String(syncState.hintsRemaining),
+        });
+        setState((s) => ({
+          ...s,
+          score: syncState.score,
+          hintsRemaining: syncState.hintsRemaining,
+          clueOverride: syncState.clueOverride,
+          broadcasts: syncState.broadcasts,
+        }));
+      },
+      (online) => setState((s) => ({ ...s, online })),
+    );
     syncWorkerRef.current = worker;
     worker.start();
 
@@ -192,6 +199,17 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       tracker.stop();
       socket.disconnect();
+    };
+  }, [state.status]);
+
+  // Keep the screen on while a round is in progress (§M9) — a locked phone can't scan QR
+  // codes or receive broadcasts/clue overrides.
+  useEffect(() => {
+    if (state.status !== 'ready') return undefined;
+
+    void activateKeepAwakeAsync('rally-active-play');
+    return () => {
+      void deactivateKeepAwake('rally-active-play');
     };
   }, [state.status]);
 
@@ -268,6 +286,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         lastLocation: null,
         sosAckedAt: null,
         error: null,
+        online: true,
       });
       return true;
     } catch (err) {
