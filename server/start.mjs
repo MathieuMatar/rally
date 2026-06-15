@@ -4,4 +4,6 @@
 import { register } from 'tsx/esm/api';
 
 register();
-await import('./src/index.ts');
+// No top-level await: hosts like Passenger `require()` this file, which fails on
+// ESM graphs containing top-level await (ERR_REQUIRE_ASYNC_MODULE).
+import('./src/index.ts');
