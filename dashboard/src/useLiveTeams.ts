@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { io } from 'socket.io-client';
 import type { AdminTeamSummary } from '@rally/shared';
 import { SOCKET_EVENTS } from '@rally/shared';
@@ -11,10 +11,11 @@ export interface LiveTeams {
   teams: AdminTeamSummary[];
   connected: boolean;
   error: string | null;
+  refresh: () => void;
 }
 
 /**
- * Loads `/admin/teams` once, then keeps it fresh via Socket.IO `team_progress` pushes.
+ * Loads `/admin/teams` once, then keeps it fresh via Socket.IO `team_progress`/`exit_logged` pushes.
  * Falls back to polling `/admin/teams` every 5s whenever the socket is disconnected.
  */
 export function useLiveTeams(token: string): LiveTeams {
@@ -22,22 +23,18 @@ export function useLiveTeams(token: string): LiveTeams {
   const [connected, setConnected] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const refresh = useCallback(() => {
+    fetchTeams(token)
+      .then((data) => {
+        setTeams(data);
+        setError(null);
+      })
+      .catch((err: unknown) => {
+        setError(err instanceof Error ? err.message : 'Failed to load teams.');
+      });
+  }, [token]);
+
   useEffect(() => {
-    let cancelled = false;
-
-    const refresh = () => {
-      fetchTeams(token)
-        .then((data) => {
-          if (cancelled) return;
-          setTeams(data);
-          setError(null);
-        })
-        .catch((err: unknown) => {
-          if (cancelled) return;
-          setError(err instanceof Error ? err.message : 'Failed to load teams.');
-        });
-    };
-
     refresh();
 
     const socket = io(SERVER_URL, { transports: ['websocket', 'polling'] });
@@ -49,17 +46,17 @@ export function useLiveTeams(token: string): LiveTeams {
     });
     socket.on('disconnect', () => setConnected(false));
     socket.on(SOCKET_EVENTS.TEAM_PROGRESS, () => refresh());
+    socket.on(SOCKET_EVENTS.EXIT_LOGGED, () => refresh());
 
     const pollId = setInterval(() => {
       if (!socket.connected) refresh();
     }, POLL_INTERVAL_MS);
 
     return () => {
-      cancelled = true;
       clearInterval(pollId);
       socket.disconnect();
     };
-  }, [token]);
+  }, [token, refresh]);
 
-  return { teams, connected, error };
+  return { teams, connected, error, refresh };
 }

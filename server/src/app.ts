@@ -16,7 +16,7 @@ export function createApp(db: Database.Database, seedData: SeedData, hub?: Realt
   app.use('/auth', authRouter(db, seedData));
   app.use('/state', stateRouter(db));
   app.use('/sync', syncRouter(db, hub));
-  app.use('/admin', adminRouter(db));
+  app.use('/admin', adminRouter(db, hub));
 
   return app;
 }

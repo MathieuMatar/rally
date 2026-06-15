@@ -1,5 +1,5 @@
 import type Database from 'better-sqlite3';
-import type { SyncEvent } from '@rally/shared';
+import type { Alert, SyncEvent } from '@rally/shared';
 
 interface ProgressStartedRow {
   started_at: number | null;
@@ -9,13 +9,21 @@ interface StationPointsRow {
   base_points: number;
 }
 
+/** Notifications the route should push over the realtime hub after the sync transaction commits. */
+export type SyncSideEffect =
+  | { kind: 'alert'; alert: Alert }
+  | { kind: 'exit_logged'; teamId: string; awaySec: number; at: number }
+  | { kind: 'sos_ack'; teamId: string };
+
 /** Applies the §5 side-effects for one durable event. Called only for newly-inserted events. */
 export function applySyncEvent(
   db: Database.Database,
   teamId: string,
   event: SyncEvent,
   serverTs: number,
-): void {
+): SyncSideEffect[] {
+  let sideEffects: SyncSideEffect[] = [];
+
   switch (event.type) {
     case 'scan_start':
       applyScanStart(db, teamId, event);
@@ -26,19 +34,22 @@ export function applySyncEvent(
     case 'station_result':
       applyStationResult(db, teamId, event);
       break;
+    case 'exit':
+      sideEffects = applyExit(teamId, event);
+      break;
+    case 'help_request':
+      sideEffects = applyHelpRequest(db, teamId, event);
+      break;
     case 'sos':
-      applySos(db, teamId, event);
+      sideEffects = applySos(db, teamId, event);
       break;
     case 'location':
       applyLocation(db, teamId, event);
       break;
-    case 'exit':
-    case 'help_request':
-      // Durable log entry only — already written to `events` by the caller.
-      break;
   }
 
   db.prepare('UPDATE teams SET last_seen = ? WHERE id = ?').run(serverTs, teamId);
+  return sideEffects;
 }
 
 function applyScanStart(db: Database.Database, teamId: string, event: SyncEvent): void {
@@ -114,16 +125,67 @@ function applyStationResult(db: Database.Database, teamId: string, event: SyncEv
   ).run(teamId, event.stationId, result);
 }
 
-function applySos(db: Database.Database, teamId: string, event: SyncEvent): void {
+function applyExit(teamId: string, event: SyncEvent): SyncSideEffect[] {
+  const awaySec = event.payload?.awaySec;
+  if (typeof awaySec !== 'number') return [];
+
+  return [{ kind: 'exit_logged', teamId, awaySec, at: event.clientTs }];
+}
+
+function applyHelpRequest(db: Database.Database, teamId: string, event: SyncEvent): SyncSideEffect[] {
+  const result = db
+    .prepare(
+      `
+    INSERT INTO alerts (team_id, type, lat, lng, at, resolved)
+    VALUES (?, 'help_request', NULL, NULL, ?, 0)
+  `,
+    )
+    .run(teamId, event.clientTs);
+
+  return [
+    {
+      kind: 'alert',
+      alert: {
+        id: Number(result.lastInsertRowid),
+        teamId,
+        type: 'help_request',
+        lat: null,
+        lng: null,
+        at: event.clientTs,
+        resolved: false,
+      },
+    },
+  ];
+}
+
+function applySos(db: Database.Database, teamId: string, event: SyncEvent): SyncSideEffect[] {
   const lat = typeof event.payload?.lat === 'number' ? event.payload.lat : null;
   const lng = typeof event.payload?.lng === 'number' ? event.payload.lng : null;
 
-  db.prepare(
-    `
+  const result = db
+    .prepare(
+      `
     INSERT INTO alerts (team_id, type, lat, lng, at, resolved)
     VALUES (?, 'sos', ?, ?, ?, 0)
   `,
-  ).run(teamId, lat, lng, event.clientTs);
+    )
+    .run(teamId, lat, lng, event.clientTs);
+
+  return [
+    {
+      kind: 'alert',
+      alert: {
+        id: Number(result.lastInsertRowid),
+        teamId,
+        type: 'sos',
+        lat,
+        lng,
+        at: event.clientTs,
+        resolved: false,
+      },
+    },
+    { kind: 'sos_ack', teamId },
+  ];
 }
 
 function applyLocation(db: Database.Database, teamId: string, event: SyncEvent): void {

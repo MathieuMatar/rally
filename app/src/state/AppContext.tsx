@@ -1,8 +1,16 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import { AppState as RNAppState, type AppStateStatus } from 'react-native';
 import type { BroadcastMessage, EventConfig, Station } from '@rally/shared';
 import { AuthError, authTeam } from '../api/client';
 import { DEFAULT_SERVER_URL } from '../config';
-import { buildScanEndEvent, buildScanStartEvent, buildStationResultEvent } from '../core/outboxEvents';
+import {
+  buildExitEvent,
+  buildHelpRequestEvent,
+  buildScanEndEvent,
+  buildScanStartEvent,
+  buildSosEvent,
+  buildStationResultEvent,
+} from '../core/outboxEvents';
 import {
   advance,
   createRouteState,
@@ -13,6 +21,8 @@ import {
 } from '../core/routeEngine';
 import { evaluateScan, type ScanResult } from '../core/scan';
 import { generateUuid } from '../core/uuid';
+import { recordAlert, recordHelpRequest } from '../db/contact';
+import { recordExit } from '../db/exits';
 import { enqueue } from '../db/outbox';
 import { getCompletedCount, getStartedAt, recordScanEnd, recordScanStart } from '../db/progress';
 import { loadRoute, saveRoute, saveStations } from '../db/route';
@@ -20,6 +30,8 @@ import { getSetting, setSettings } from '../db/settings';
 import { LocationTracker } from '../location/locationTracker';
 import { LocationSocket } from '../realtime/locationSocket';
 import { SyncWorker } from '../sync/syncWorker';
+
+const MIN_EXIT_AWAY_SEC = 2;
 
 export type AppStatus = 'loading' | 'logged_out' | 'ready';
 
@@ -33,6 +45,8 @@ interface AppState {
   broadcasts: BroadcastMessage[];
   routeState: RouteState | null;
   stationStartedAt: number | null;
+  lastLocation: { lat: number; lng: number } | null;
+  sosAckedAt: number | null;
   error: string | null;
 }
 
@@ -43,6 +57,9 @@ export interface AppContextValue extends AppState {
   login(code: string): Promise<boolean>;
   scanStart(rawCode: string): ScanResult;
   scanEnd(rawCode: string): ScanResult;
+  requestHelp(): void;
+  sendSos(): void;
+  markExpectingCall(): void;
 }
 
 const INITIAL_STATE: AppState = {
@@ -55,6 +72,8 @@ const INITIAL_STATE: AppState = {
   broadcasts: [],
   routeState: null,
   stationStartedAt: null,
+  lastLocation: null,
+  sosAckedAt: null,
   error: null,
 };
 
@@ -105,6 +124,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       broadcasts: [],
       routeState,
       stationStartedAt,
+      lastLocation: null,
+      sosAckedAt: null,
       error: null,
     });
   }, []);
@@ -136,7 +157,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     };
   }, [state.status]);
 
-  // While the team is logged in, push throttled GPS updates to organizers over Socket.IO.
+  // While the team is logged in, push throttled GPS updates to organizers over Socket.IO and
+  // listen for hint grants / SOS acknowledgements pushed back to this team.
   useEffect(() => {
     if (state.status !== 'ready') return undefined;
 
@@ -144,16 +166,62 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     const token = getSetting('token');
     if (!serverUrl || !token) return undefined;
 
-    const socket = new LocationSocket(serverUrl, token);
+    const socket = new LocationSocket(serverUrl, token, {
+      onHelpGranted: (hintsRemaining) => {
+        setSettings({ hints_remaining: String(hintsRemaining) });
+        setState((s) => ({ ...s, hintsRemaining }));
+      },
+      onSosAck: () => {
+        setState((s) => ({ ...s, sosAckedAt: Date.now() }));
+      },
+    });
     socket.connect();
 
-    const tracker = new LocationTracker((lat, lng) => socket.sendLocation(lat, lng));
+    const tracker = new LocationTracker((lat, lng) => {
+      setState((s) => ({ ...s, lastLocation: { lat, lng } }));
+      socket.sendLocation(lat, lng);
+    });
     void tracker.start();
 
     return () => {
       tracker.stop();
       socket.disconnect();
     };
+  }, [state.status]);
+
+  // Exit tracking (anti-cheat signal, §M6): log time spent away from the app while a round
+  // is in progress. Suppress the false "exit" caused by the app's own call buttons via
+  // markExpectingCall(), and ignore ultra-short transitions.
+  const expectingCallRef = useRef(false);
+  useEffect(() => {
+    if (state.status !== 'ready') return undefined;
+
+    let leftAt: number | null = null;
+
+    const handleAppStateChange = (next: AppStateStatus) => {
+      if (next !== 'active') {
+        if (leftAt === null) leftAt = Date.now();
+        return;
+      }
+      if (leftAt === null) return;
+
+      const returnedAt = Date.now();
+      const recordedLeftAt = leftAt;
+      const awaySec = Math.round((returnedAt - recordedLeftAt) / 1000);
+      const wasExpectingCall = expectingCallRef.current;
+      expectingCallRef.current = false;
+      leftAt = null;
+
+      if (awaySec < MIN_EXIT_AWAY_SEC || wasExpectingCall) return;
+
+      const uuid = generateUuid();
+      recordExit(uuid, recordedLeftAt, returnedAt, awaySec);
+      enqueue(buildExitEvent(uuid, returnedAt, recordedLeftAt, returnedAt));
+      syncWorkerRef.current?.triggerNow();
+    };
+
+    const subscription = RNAppState.addEventListener('change', handleAppStateChange);
+    return () => subscription.remove();
   }, [state.status]);
 
   const login = useCallback(async (code: string): Promise<boolean> => {
@@ -191,6 +259,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         broadcasts: [],
         routeState: createRouteState(res.route, 0),
         stationStartedAt: null,
+        lastLocation: null,
+        sosAckedAt: null,
         error: null,
       });
       return true;
@@ -249,6 +319,35 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     [state.routeState, state.stationStartedAt],
   );
 
+  // "I'm stuck": writes a help_request; the radio call to HQ is the actual help channel.
+  const requestHelp = useCallback(() => {
+    const uuid = generateUuid();
+    const now = Date.now();
+    const currentStation = state.routeState ? getCurrentStation(state.routeState) : null;
+    const stationId = currentStation?.id ?? null;
+    recordHelpRequest(uuid, stationId, now);
+    enqueue(buildHelpRequestEvent(uuid, now, stationId ?? ''));
+    syncWorkerRef.current?.triggerNow();
+  }, [state.routeState]);
+
+  // Emergency: logs an sos alert with the last known GPS fix; the server emits `alert` to
+  // organizers and replies `sos_ack`.
+  const sendSos = useCallback(() => {
+    const uuid = generateUuid();
+    const now = Date.now();
+    const lat = state.lastLocation?.lat ?? null;
+    const lng = state.lastLocation?.lng ?? null;
+    recordAlert(uuid, 'sos', lat, lng, now);
+    enqueue(buildSosEvent(uuid, now, lat, lng));
+    syncWorkerRef.current?.triggerNow();
+  }, [state.lastLocation]);
+
+  // Call HQ/Call Emergency call this right before dialing so the next background transition
+  // (the call itself) isn't logged as an exit.
+  const markExpectingCall = useCallback(() => {
+    expectingCallRef.current = true;
+  }, []);
+
   const value = useMemo<AppContextValue>(() => {
     const currentStation = state.routeState ? getCurrentStation(state.routeState) : null;
     return {
@@ -259,8 +358,11 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       login,
       scanStart,
       scanEnd,
+      requestHelp,
+      sendSos,
+      markExpectingCall,
     };
-  }, [state, login, scanStart, scanEnd]);
+  }, [state, login, scanStart, scanEnd, requestHelp, sendSos, markExpectingCall]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

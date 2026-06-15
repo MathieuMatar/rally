@@ -192,3 +192,52 @@ td {
   font-size: 0.8rem;
   color: #9fb3c8;
 }
+
+.alerts-banner {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  margin-bottom: 1rem;
+}
+
+.alert {
+  padding: 0.5rem 0.75rem;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+}
+
+.alert-sos {
+  border-color: #ff6b6b;
+  background: #3a1620;
+  color: #ffb3b3;
+}
+
+.alert-help_request {
+  border-color: #ffd27f;
+  background: #3a3018;
+  color: #ffe3a8;
+}
+
+.hint-button {
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #3d7bff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+}
+
+.hint-button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.no-hints {
+  display: block;
+  font-size: 0.75rem;
+  color: #ff6b6b;
+  margin-bottom: 0.25rem;
+}

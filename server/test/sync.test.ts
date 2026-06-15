@@ -117,6 +117,71 @@ describe('POST /sync — realtime emissions', () => {
     expect(hub.toOrganizers).toHaveLength(0);
     expect(hub.toTeams).toHaveLength(0);
   });
+
+  it('emits exit_logged to organizers for an exit event', async () => {
+    const hub = new FakeRealtimeHub();
+    const { app } = buildTestApp(data, hub);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const res = await request(app)
+      .post('/sync')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        events: [
+          {
+            uuid: 'evt-exit',
+            type: 'exit' as const,
+            clientTs: 5_000,
+            payload: { leftAt: 1_000, returnedAt: 5_000, awaySec: 4 },
+          },
+        ],
+      });
+
+    expect(res.status).toBe(200);
+    expect(hub.toOrganizers).toContainEqual({
+      event: SOCKET_EVENTS.EXIT_LOGGED,
+      payload: { teamId: 'red_a', awaySec: 4, at: 5_000 },
+    });
+  });
+
+  it('emits an alert to organizers for a help_request event', async () => {
+    const hub = new FakeRealtimeHub();
+    const { app } = buildTestApp(data, hub);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const res = await request(app)
+      .post('/sync')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        events: [{ uuid: 'evt-help', type: 'help_request' as const, stationId: 'ai_or_not', clientTs: 6_000 }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(hub.toOrganizers).toContainEqual({
+      event: SOCKET_EVENTS.ALERT,
+      payload: expect.objectContaining({ teamId: 'red_a', type: 'help_request', resolved: false }),
+    });
+  });
+
+  it('emits an alert to organizers and sos_ack to the team for an sos event', async () => {
+    const hub = new FakeRealtimeHub();
+    const { app } = buildTestApp(data, hub);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const res = await request(app)
+      .post('/sync')
+      .set('Authorization', `Bearer ${token}`)
+      .send({
+        events: [{ uuid: 'evt-sos', type: 'sos' as const, clientTs: 7_000, payload: { lat: 34.18, lng: 35.67 } }],
+      });
+
+    expect(res.status).toBe(200);
+    expect(hub.toOrganizers).toContainEqual({
+      event: SOCKET_EVENTS.ALERT,
+      payload: expect.objectContaining({ teamId: 'red_a', type: 'sos', lat: 34.18, lng: 35.67, resolved: false }),
+    });
+    expect(hub.toTeams).toContainEqual({ teamId: 'red_a', event: SOCKET_EVENTS.SOS_ACK, payload: {} });
+  });
 });
 
 describe('GET /state', () => {

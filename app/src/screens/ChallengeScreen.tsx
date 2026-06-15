@@ -17,6 +17,10 @@ export function ChallengeScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <TouchableOpacity style={styles.contactLink} onPress={() => navigation.navigate('Contact')}>
+        <Text style={styles.contactLinkText}>Contact HQ</Text>
+      </TouchableOpacity>
+
       <Text style={styles.label}>Station</Text>
       <Text style={styles.stationName}>{currentStation?.name}</Text>
 
@@ -36,6 +40,15 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     backgroundColor: '#0F1B2D',
+  },
+  contactLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+  },
+  contactLinkText: {
+    color: '#3D7BFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   label: {
     color: '#9FB3C8',

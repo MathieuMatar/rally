@@ -1,4 +1,11 @@
-import type { AdminTeamSummary, AuthOrganizerRequest, AuthOrganizerResponse, Station } from '@rally/shared';
+import type {
+  AdminHintRequest,
+  AdminHintResponse,
+  AdminTeamSummary,
+  AuthOrganizerRequest,
+  AuthOrganizerResponse,
+  Station,
+} from '@rally/shared';
 import { SERVER_URL } from './config';
 
 export class ApiError extends Error {}
@@ -47,4 +54,19 @@ export async function fetchStations(token: string): Promise<Station[]> {
   }
 
   return (await response.json()) as Station[];
+}
+
+/** Calls `POST /admin/hint`. `delta` is usually -1; the server enforces hintsRemaining >= 0. */
+export async function sendHint(token: string, teamId: string, delta: number): Promise<AdminHintResponse> {
+  const response = await fetch(`${SERVER_URL}/admin/hint`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+    body: JSON.stringify({ teamId, delta } satisfies AdminHintRequest),
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`Failed to grant hint (${response.status}).`);
+  }
+
+  return (await response.json()) as AdminHintResponse;
 }

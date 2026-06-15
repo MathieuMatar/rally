@@ -35,9 +35,14 @@ export function ClueScreen() {
         </View>
       </View>
 
-      <TouchableOpacity style={styles.mapLink} onPress={() => navigation.navigate('Map')}>
-        <Text style={styles.mapLinkText}>View map</Text>
-      </TouchableOpacity>
+      <View style={styles.linkRow}>
+        <TouchableOpacity onPress={() => navigation.navigate('Contact')}>
+          <Text style={styles.mapLinkText}>Contact HQ</Text>
+        </TouchableOpacity>
+        <TouchableOpacity onPress={() => navigation.navigate('Map')}>
+          <Text style={styles.mapLinkText}>View map</Text>
+        </TouchableOpacity>
+      </View>
 
       {crossingCategory ? (
         <View style={styles.notice}>
@@ -83,8 +88,9 @@ const styles = StyleSheet.create({
   statValueAlert: {
     color: '#FF6B6B',
   },
-  mapLink: {
-    alignSelf: 'flex-end',
+  linkRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
     marginBottom: 16,
   },
   mapLinkText: {

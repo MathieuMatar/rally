@@ -145,6 +145,10 @@ export interface AdminHintRequest {
   delta: number;
 }
 
+export interface AdminHintResponse {
+  hintsRemaining: number;
+}
+
 export interface AdminBroadcastRequest {
   /** A team id, or 'all'. */
   target: string;

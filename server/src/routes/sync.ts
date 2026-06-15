@@ -5,7 +5,7 @@ import { requireAuth, requireRole } from '../auth/middleware.js';
 import type { TeamTokenPayload } from '../auth/jwt.js';
 import type { RealtimeHub } from '../realtime.js';
 import { getTeamState } from '../state.js';
-import { applySyncEvent } from '../sync/apply.js';
+import { applySyncEvent, type SyncSideEffect } from '../sync/apply.js';
 import { syncRequestSchema } from '../validation.js';
 
 interface ProgressResultRow {
@@ -36,6 +36,7 @@ export function syncRouter(db: Database.Database, hub?: RealtimeHub): Router {
     const events = [...parsed.data.events].sort((a, b) => a.clientTs - b.clientTs);
     const accepted: string[] = [];
     const completedStationIds: string[] = [];
+    const sideEffects: SyncSideEffect[] = [];
 
     const run = db.transaction(() => {
       for (const event of events) {
@@ -51,7 +52,7 @@ export function syncRouter(db: Database.Database, hub?: RealtimeHub): Router {
         });
 
         if (result.changes === 1) {
-          applySyncEvent(db, teamId, event, serverTs);
+          sideEffects.push(...applySyncEvent(db, teamId, event, serverTs));
           if (event.type === 'scan_end' && event.stationId) {
             completedStationIds.push(event.stationId);
           }
@@ -78,6 +79,23 @@ export function syncRouter(db: Database.Database, hub?: RealtimeHub): Router {
           score: state.score,
           hintsRemaining: state.hintsRemaining,
         });
+      }
+      for (const effect of sideEffects) {
+        switch (effect.kind) {
+          case 'alert':
+            hub.emitToOrganizers(SOCKET_EVENTS.ALERT, effect.alert);
+            break;
+          case 'exit_logged':
+            hub.emitToOrganizers(SOCKET_EVENTS.EXIT_LOGGED, {
+              teamId: effect.teamId,
+              awaySec: effect.awaySec,
+              at: effect.at,
+            });
+            break;
+          case 'sos_ack':
+            hub.emitToTeam(effect.teamId, SOCKET_EVENTS.SOS_ACK, {});
+            break;
+        }
       }
     }
 

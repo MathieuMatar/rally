@@ -1,13 +1,22 @@
 import { io, type Socket } from 'socket.io-client';
 import { SOCKET_EVENTS } from '@rally/shared';
 
-/** Thin wrapper around a socket.io connection used to push live GPS pings to organizers (§3.3). */
+export interface LocationSocketHandlers {
+  onHelpGranted?: (hintsRemaining: number) => void;
+  onSosAck?: () => void;
+}
+
+/**
+ * Thin wrapper around a socket.io connection used to push live GPS pings to organizers (§3.3)
+ * and to receive the team-targeted pushes that affect the hint counter and SOS confirmation.
+ */
 export class LocationSocket {
   private socket: Socket | null = null;
 
   constructor(
     private readonly serverUrl: string,
     private readonly token: string,
+    private readonly handlers: LocationSocketHandlers = {},
   ) {}
 
   connect(): void {
@@ -15,6 +24,12 @@ export class LocationSocket {
     this.socket = io(this.serverUrl, { transports: ['websocket'] });
     this.socket.on('connect', () => {
       this.socket?.emit(SOCKET_EVENTS.HELLO, { token: this.token });
+    });
+    this.socket.on(SOCKET_EVENTS.HELP_GRANTED, (payload: { hintsRemaining: number }) => {
+      this.handlers.onHelpGranted?.(payload.hintsRemaining);
+    });
+    this.socket.on(SOCKET_EVENTS.SOS_ACK, () => {
+      this.handlers.onSosAck?.();
     });
   }
 

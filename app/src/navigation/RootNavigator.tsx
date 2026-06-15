@@ -5,6 +5,7 @@ import { ActivityIndicator, View } from 'react-native';
 import { ChallengeScreen } from '../screens/ChallengeScreen';
 import { ClueScreen } from '../screens/ClueScreen';
 import { CompleteScreen } from '../screens/CompleteScreen';
+import { ContactScreen } from '../screens/ContactScreen';
 import { LoginScreen } from '../screens/LoginScreen';
 import { MapScreen } from '../screens/MapScreen';
 import { ScanScreen } from '../screens/ScanScreen';
@@ -48,6 +49,7 @@ export function RootNavigator() {
           <GameStack.Screen name="Challenge" component={ChallengeScreen} />
           <GameStack.Screen name="Complete" component={CompleteScreen} />
           <GameStack.Screen name="Map" component={MapScreen} />
+          <GameStack.Screen name="Contact" component={ContactScreen} />
         </GameStack.Navigator>
       )}
     </NavigationContainer>

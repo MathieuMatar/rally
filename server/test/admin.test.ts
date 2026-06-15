@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
+import { SOCKET_EVENTS } from '@rally/shared';
 import { loadSeedData } from '../src/seedData.js';
-import { buildTestApp } from './helpers.js';
+import { buildTestApp, FakeRealtimeHub } from './helpers.js';
 
 const data = loadSeedData();
 
@@ -83,6 +84,31 @@ describe('GET /admin/teams', () => {
     expect(res.status).toBe(200);
     expect(res.body).toHaveLength(data.teams.length);
   });
+
+  it('includes logged exits for a team', async () => {
+    const { app } = buildTestApp(data);
+    const teamToken_ = await teamToken(app, 'REDA-2026');
+
+    await request(app)
+      .post('/sync')
+      .set('Authorization', `Bearer ${teamToken_}`)
+      .send({
+        events: [
+          {
+            uuid: 'evt-exit-admin',
+            type: 'exit',
+            clientTs: 5_000,
+            payload: { leftAt: 1_000, returnedAt: 5_000, awaySec: 4 },
+          },
+        ],
+      });
+
+    const orgToken = await organizerToken(app, 'ORGANIZER-2026');
+    const res = await request(app).get('/admin/teams').set('Authorization', `Bearer ${orgToken}`);
+
+    const redA = res.body.find((t: { team: { id: string } }) => t.team.id === 'red_a');
+    expect(redA.exits).toEqual([{ leftAt: 1_000, returnedAt: 5_000, awaySec: 4 }]);
+  });
 });
 
 describe('GET /admin/stations', () => {
@@ -110,5 +136,55 @@ describe('GET /admin/stations', () => {
       lat: expect.any(Number),
       lng: expect.any(Number),
     });
+  });
+});
+
+describe('POST /admin/hint', () => {
+  it('rejects a team token', async () => {
+    const { app } = buildTestApp(data);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const res = await request(app)
+      .post('/admin/hint')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ teamId: 'red_a', delta: -1 });
+
+    expect(res.status).toBe(403);
+  });
+
+  it('decrements hintsRemaining and emits help_granted to the team', async () => {
+    const hub = new FakeRealtimeHub();
+    const { app } = buildTestApp(data, hub);
+    const orgToken = await organizerToken(app, 'ORGANIZER-2026');
+    const before = data.event.helpHintsPerTeam;
+
+    const res = await request(app)
+      .post('/admin/hint')
+      .set('Authorization', `Bearer ${orgToken}`)
+      .send({ teamId: 'red_a', delta: -1 });
+
+    expect(res.status).toBe(200);
+    expect(res.body).toEqual({ hintsRemaining: before - 1 });
+    expect(hub.toTeams).toContainEqual({
+      teamId: 'red_a',
+      event: SOCKET_EVENTS.HELP_GRANTED,
+      payload: { hintsRemaining: before - 1 },
+    });
+  });
+
+  it('never lets hintsRemaining go below 0', async () => {
+    const { app } = buildTestApp(data);
+    const orgToken = await organizerToken(app, 'ORGANIZER-2026');
+
+    for (let i = 0; i < data.event.helpHintsPerTeam + 2; i++) {
+      await request(app)
+        .post('/admin/hint')
+        .set('Authorization', `Bearer ${orgToken}`)
+        .send({ teamId: 'red_a', delta: -1 });
+    }
+
+    const res = await request(app).get('/admin/teams').set('Authorization', `Bearer ${orgToken}`);
+    const redA = res.body.find((t: { team: { id: string } }) => t.team.id === 'red_a');
+    expect(redA.hintsRemaining).toBe(0);
   });
 });

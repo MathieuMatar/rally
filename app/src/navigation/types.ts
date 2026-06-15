@@ -8,4 +8,5 @@ export type GameStackParamList = {
   Challenge: undefined;
   Complete: undefined;
   Map: undefined;
+  Contact: undefined;
 };

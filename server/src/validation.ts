@@ -19,3 +19,8 @@ export const syncEventSchema = z.object({
 export const syncRequestSchema = z.object({
   events: z.array(syncEventSchema),
 });
+
+export const adminHintSchema = z.object({
+  teamId: z.string().min(1),
+  delta: z.number().int(),
+});
