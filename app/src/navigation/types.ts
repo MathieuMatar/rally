@@ -9,4 +9,5 @@ export type GameStackParamList = {
   Complete: undefined;
   Map: undefined;
   Contact: undefined;
+  Capture: undefined;
 };

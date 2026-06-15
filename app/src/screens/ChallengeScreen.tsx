@@ -21,6 +21,10 @@ export function ChallengeScreen() {
         <Text style={styles.contactLinkText}>Contact HQ</Text>
       </TouchableOpacity>
 
+      <TouchableOpacity style={styles.captureLink} onPress={() => navigation.navigate('Capture')}>
+        <Text style={styles.captureLinkText}>Photos &amp; video</Text>
+      </TouchableOpacity>
+
       <Text style={styles.label}>Station</Text>
       <Text style={styles.stationName}>{currentStation?.name}</Text>
 
@@ -46,6 +50,15 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   contactLinkText: {
+    color: '#3D7BFF',
+    fontSize: 14,
+    fontWeight: '600',
+  },
+  captureLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+  },
+  captureLinkText: {
     color: '#3D7BFF',
     fontSize: 14,
     fontWeight: '600',

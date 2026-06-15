@@ -2,6 +2,7 @@ import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import React from 'react';
 import { ActivityIndicator, View } from 'react-native';
+import { CaptureScreen } from '../screens/CaptureScreen';
 import { ChallengeScreen } from '../screens/ChallengeScreen';
 import { ClueScreen } from '../screens/ClueScreen';
 import { CompleteScreen } from '../screens/CompleteScreen';
@@ -50,6 +51,7 @@ export function RootNavigator() {
           <GameStack.Screen name="Complete" component={CompleteScreen} />
           <GameStack.Screen name="Map" component={MapScreen} />
           <GameStack.Screen name="Contact" component={ContactScreen} />
+          <GameStack.Screen name="Capture" component={CaptureScreen} />
         </GameStack.Navigator>
       )}
     </NavigationContainer>

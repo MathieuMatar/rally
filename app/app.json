@@ -23,7 +23,8 @@
       [
         "expo-camera",
         {
-          "cameraPermission": "$(PRODUCT_NAME) needs access to your camera to scan station QR codes and capture challenge media."
+          "cameraPermission": "$(PRODUCT_NAME) needs access to your camera to scan station QR codes and capture challenge media.",
+          "recordAudioAndroid": false
         }
       ]
     ]
