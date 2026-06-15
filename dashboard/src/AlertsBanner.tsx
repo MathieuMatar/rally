@@ -12,16 +12,27 @@ function alertLabel(type: string): string {
   return type === 'sos' ? 'SOS' : 'Help requested';
 }
 
-/** Live feed of `alert` socket pushes (help_request, sos). Resolving alerts is handled in M8. */
-export function AlertsBanner({ alerts, teams }: { alerts: Alert[]; teams: AdminTeamSummary[] }) {
+interface AlertsBannerProps {
+  alerts: Alert[];
+  teams: AdminTeamSummary[];
+  onResolve: (alertId: number) => void;
+}
+
+/** Live feed of open `alert`s (help_request, sos), with a resolve action per alert. */
+export function AlertsBanner({ alerts, teams, onResolve }: AlertsBannerProps) {
   if (alerts.length === 0) return null;
 
   return (
     <div className="alerts-banner">
       {alerts.map((alert) => (
         <div key={alert.id} className={`alert alert-${alert.type}`}>
-          <strong>{alertLabel(alert.type)}</strong> — {teamName(teams, alert.teamId)} at {formatTime(alert.at)}
-          {alert.lat != null && alert.lng != null ? ` (${alert.lat.toFixed(4)}, ${alert.lng.toFixed(4)})` : ''}
+          <span>
+            <strong>{alertLabel(alert.type)}</strong> — {teamName(teams, alert.teamId)} at {formatTime(alert.at)}
+            {alert.lat != null && alert.lng != null ? ` (${alert.lat.toFixed(4)}, ${alert.lng.toFixed(4)})` : ''}
+          </span>
+          <button className="resolve-button" onClick={() => onResolve(alert.id)}>
+            Resolve
+          </button>
         </div>
       ))}
     </div>

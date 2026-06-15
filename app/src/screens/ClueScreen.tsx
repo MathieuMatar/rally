@@ -2,6 +2,7 @@ import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { BroadcastBanner } from '../components/BroadcastBanner';
 import { formatDuration, getCountdown } from '../core/countdown';
 import { useNow } from '../hooks/useNow';
 import type { GameStackParamList } from '../navigation/types';
@@ -9,7 +10,7 @@ import { useApp } from '../state/AppContext';
 
 export function ClueScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<GameStackParamList, 'Clue'>>();
-  const { event, currentStation, crossingCategory, score, hintsRemaining, clueOverride } = useApp();
+  const { event, currentStation, crossingCategory, score, hintsRemaining, clueOverride, broadcasts } = useApp();
   const now = useNow();
 
   const countdown = event?.eventStartIso
@@ -18,6 +19,8 @@ export function ClueScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      <BroadcastBanner broadcasts={broadcasts} />
+
       <View style={styles.statsRow}>
         <View style={styles.stat}>
           <Text style={styles.statLabel}>Time left</Text>

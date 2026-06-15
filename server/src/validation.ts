@@ -24,3 +24,19 @@ export const adminHintSchema = z.object({
   teamId: z.string().min(1),
   delta: z.number().int(),
 });
+
+export const adminScoreSchema = z.object({
+  teamId: z.string().min(1),
+  stationId: z.string().min(1),
+  points: z.number().int(),
+});
+
+export const adminBroadcastSchema = z.object({
+  target: z.string().min(1),
+  message: z.string().min(1),
+});
+
+export const adminClueSchema = z.object({
+  teamId: z.string().min(1),
+  text: z.string().min(1),
+});

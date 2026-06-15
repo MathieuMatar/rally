@@ -1,9 +1,11 @@
 import { io, type Socket } from 'socket.io-client';
-import { SOCKET_EVENTS } from '@rally/shared';
+import { SOCKET_EVENTS, type BroadcastMessage } from '@rally/shared';
 
 export interface LocationSocketHandlers {
   onHelpGranted?: (hintsRemaining: number) => void;
   onSosAck?: () => void;
+  onBroadcast?: (message: BroadcastMessage) => void;
+  onClueOverride?: (text: string) => void;
 }
 
 /**
@@ -30,6 +32,12 @@ export class LocationSocket {
     });
     this.socket.on(SOCKET_EVENTS.SOS_ACK, () => {
       this.handlers.onSosAck?.();
+    });
+    this.socket.on(SOCKET_EVENTS.BROADCAST, (payload: BroadcastMessage) => {
+      this.handlers.onBroadcast?.(payload);
+    });
+    this.socket.on(SOCKET_EVENTS.CLUE_OVERRIDE, (payload: { text: string }) => {
+      this.handlers.onClueOverride?.(payload.text);
     });
   }
 

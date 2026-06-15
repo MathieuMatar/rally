@@ -174,6 +174,12 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onSosAck: () => {
         setState((s) => ({ ...s, sosAckedAt: Date.now() }));
       },
+      onBroadcast: (message) => {
+        setState((s) => ({ ...s, broadcasts: [...s.broadcasts, message] }));
+      },
+      onClueOverride: (text) => {
+        setState((s) => ({ ...s, clueOverride: text }));
+      },
     });
     socket.connect();
 

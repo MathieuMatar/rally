@@ -139,6 +139,16 @@ export interface AdminScoreRequest {
   points: number;
 }
 
+export interface AdminScoreResponse {
+  score: number;
+  points: number;
+}
+
+/** Generic acknowledgement for admin actions that don't return data. */
+export interface OkResponse {
+  ok: true;
+}
+
 export interface AdminHintRequest {
   teamId: string;
   /** Usually -1. Server enforces hintsRemaining >= 0. */

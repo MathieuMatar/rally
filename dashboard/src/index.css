@@ -130,6 +130,11 @@ td {
   border-color: #3d7bff;
 }
 
+.tab:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
 .map-view {
   display: flex;
   gap: 1rem;
@@ -201,11 +206,26 @@ td {
 }
 
 .alert {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
   padding: 0.5rem 0.75rem;
   border-radius: 8px;
   font-size: 0.9rem;
   border: 1px solid #3d5a80;
   background: #16263d;
+}
+
+.resolve-button {
+  padding: 0.3rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  flex-shrink: 0;
 }
 
 .alert-sos {
@@ -240,4 +260,127 @@ td {
   font-size: 0.75rem;
   color: #ff6b6b;
   margin-bottom: 0.25rem;
+}
+
+.broadcast-panel {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.broadcast-panel select,
+.broadcast-input {
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.broadcast-input {
+  flex: 1;
+}
+
+.broadcast-panel button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #3d7bff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.broadcast-panel button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.broadcast-status {
+  font-size: 0.8rem;
+  color: #9fb3c8;
+}
+
+.team-link {
+  display: inline-flex;
+  align-items: center;
+  border: none;
+  background: none;
+  color: #fff;
+  cursor: pointer;
+  font-size: inherit;
+  padding: 0;
+  text-decoration: underline;
+  text-decoration-color: transparent;
+}
+
+.team-link:hover {
+  text-decoration-color: #9fb3c8;
+}
+
+.team-detail h3 {
+  margin-top: 1.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.back-button {
+  padding: 0.4rem 0.8rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.85rem;
+  margin-bottom: 1rem;
+}
+
+.team-summary {
+  color: #9fb3c8;
+}
+
+.adjust-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.adjust-row select,
+.points-input,
+.clue-input {
+  padding: 0.5rem 0.7rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+  color: #fff;
+  font-size: 0.9rem;
+}
+
+.points-input {
+  width: 6rem;
+}
+
+.clue-input {
+  flex: 1;
+}
+
+.adjust-row button {
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  border: 1px solid #3d5a80;
+  background: #3d7bff;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.adjust-row button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.adjust-status {
+  font-size: 0.8rem;
+  color: #9fb3c8;
 }

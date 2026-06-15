@@ -24,9 +24,10 @@ function totalAwaySec(team: AdminTeamSummary): number {
 
 interface ScoreboardProps extends LiveTeams {
   token: string;
+  onSelectTeam: (teamId: string) => void;
 }
 
-export function Scoreboard({ teams, connected, error, refresh, token }: ScoreboardProps) {
+export function Scoreboard({ teams, connected, error, refresh, token, onSelectTeam }: ScoreboardProps) {
   const sorted = [...teams].sort((a, b) => b.score - a.score);
   const [pendingTeamId, setPendingTeamId] = useState<string | null>(null);
 
@@ -68,8 +69,10 @@ export function Scoreboard({ teams, connected, error, refresh, token }: Scoreboa
             <tr key={team.team.id}>
               <td>{i + 1}</td>
               <td>
-                <span className="swatch" style={{ backgroundColor: team.team.color }} />
-                {team.team.name}
+                <button className="team-link" onClick={() => onSelectTeam(team.team.id)}>
+                  <span className="swatch" style={{ backgroundColor: team.team.color }} />
+                  {team.team.name}
+                </button>
               </td>
               <td>{team.score}</td>
               <td>{team.hintsRemaining}</td>
