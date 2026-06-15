@@ -7,7 +7,7 @@
     "hqPhone": "+961-XX-XXXXXX",
     "emergencyPhone": "+961-XX-XXXXXX",
     "helpHintsPerTeam": 3,
-    "serverUrl": "https://REPLACE_WITH_YOUR_SERVER",
+    "serverUrl": "https://r.vibrandstudio.com",
     "qrPayloadFormat": "RALLY:<stationId>:<START|END>"
   },
   "stations": [

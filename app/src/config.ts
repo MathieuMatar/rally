@@ -3,4 +3,4 @@
  * The response's `event.serverUrl` is then cached locally and used for sync (M3).
  * Replace before building for the event.
  */
-export const DEFAULT_SERVER_URL = 'https://REPLACE_WITH_YOUR_SERVER';
+export const DEFAULT_SERVER_URL = 'https://r.vibrandstudio.com';

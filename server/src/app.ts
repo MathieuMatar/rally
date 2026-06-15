@@ -23,5 +23,9 @@ export function createApp(db: Database.Database, seedData: SeedData, hub?: Realt
   // Missing files simply 404 — the map's online OSM layer fills the gap.
   app.use('/tiles', express.static(config.tilesPath, { fallthrough: true }));
 
+  // Serve the built organizer dashboard (`npm run build -w dashboard`) from the same
+  // origin as the API — lets both live under a single subdomain/Node app.
+  app.use(express.static(config.dashboardDistPath, { fallthrough: true }));
+
   return app;
 }
