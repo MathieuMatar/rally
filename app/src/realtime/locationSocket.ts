@@ -23,7 +23,7 @@ export class LocationSocket {
 
   connect(): void {
     if (this.socket) return;
-    this.socket = io(this.serverUrl, { transports: ['websocket'] });
+    this.socket = io(this.serverUrl, { transports: ['websocket', 'polling'] });
     this.socket.on('connect', () => {
       this.socket?.emit(SOCKET_EVENTS.HELLO, { token: this.token });
     });
