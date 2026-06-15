@@ -1,5 +1,5 @@
-import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react';
-import type { EventConfig, Station } from '@rally/shared';
+import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react';
+import type { BroadcastMessage, EventConfig, Station } from '@rally/shared';
 import { AuthError, authTeam } from '../api/client';
 import { DEFAULT_SERVER_URL } from '../config';
 import { buildScanEndEvent, buildScanStartEvent, buildStationResultEvent } from '../core/outboxEvents';
@@ -17,6 +17,7 @@ import { enqueue } from '../db/outbox';
 import { getCompletedCount, getStartedAt, recordScanEnd, recordScanStart } from '../db/progress';
 import { loadRoute, saveRoute, saveStations } from '../db/route';
 import { getSetting, setSettings } from '../db/settings';
+import { SyncWorker } from '../sync/syncWorker';
 
 export type AppStatus = 'loading' | 'logged_out' | 'ready';
 
@@ -26,6 +27,8 @@ interface AppState {
   team: { id: string; name: string; color: string } | null;
   score: number;
   hintsRemaining: number;
+  clueOverride: string | undefined;
+  broadcasts: BroadcastMessage[];
   routeState: RouteState | null;
   stationStartedAt: number | null;
   error: string | null;
@@ -46,6 +49,8 @@ const INITIAL_STATE: AppState = {
   team: null,
   score: 0,
   hintsRemaining: 0,
+  clueOverride: undefined,
+  broadcasts: [],
   routeState: null,
   stationStartedAt: null,
   error: null,
@@ -94,11 +99,40 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       },
       score: Number(getSetting('score') ?? '0'),
       hintsRemaining: Number(getSetting('hints_remaining') ?? '0'),
+      clueOverride: undefined,
+      broadcasts: [],
       routeState,
       stationStartedAt,
       error: null,
     });
   }, []);
+
+  // While the team is logged in, drain the local outbox to /sync every ~15s.
+  const syncWorkerRef = useRef<SyncWorker | null>(null);
+  useEffect(() => {
+    if (state.status !== 'ready') return undefined;
+
+    const worker = new SyncWorker((syncState) => {
+      setSettings({
+        score: String(syncState.score),
+        hints_remaining: String(syncState.hintsRemaining),
+      });
+      setState((s) => ({
+        ...s,
+        score: syncState.score,
+        hintsRemaining: syncState.hintsRemaining,
+        clueOverride: syncState.clueOverride,
+        broadcasts: syncState.broadcasts,
+      }));
+    });
+    syncWorkerRef.current = worker;
+    worker.start();
+
+    return () => {
+      worker.stop();
+      syncWorkerRef.current = null;
+    };
+  }, [state.status]);
 
   const login = useCallback(async (code: string): Promise<boolean> => {
     try {
@@ -131,6 +165,8 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         team: { id: res.team.id, name: res.team.name, color: res.team.color },
         score: res.team.score,
         hintsRemaining: res.team.hintsRemaining,
+        clueOverride: undefined,
+        broadcasts: [],
         routeState: createRouteState(res.route, 0),
         stationStartedAt: null,
         error: null,
@@ -154,6 +190,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         const now = Date.now();
         recordScanStart(uuid, result.station.id, now);
         enqueue(buildScanStartEvent(uuid, now, result.station.id));
+        syncWorkerRef.current?.triggerNow();
         setState((s) => ({ ...s, stationStartedAt: now }));
       }
       return result;
@@ -177,6 +214,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
         recordScanEnd(scanUuid, result.station.id, now, durationSec, 'completed');
         enqueue(buildScanEndEvent(scanUuid, now, result.station.id, durationSec));
         enqueue(buildStationResultEvent(resultUuid, now, result.station.id, 'completed'));
+        syncWorkerRef.current?.triggerNow();
 
         setState((s) => ({
           ...s,

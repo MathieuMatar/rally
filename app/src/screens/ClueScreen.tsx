@@ -9,7 +9,7 @@ import { useApp } from '../state/AppContext';
 
 export function ClueScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<GameStackParamList, 'Clue'>>();
-  const { event, currentStation, crossingCategory, score, hintsRemaining } = useApp();
+  const { event, currentStation, crossingCategory, score, hintsRemaining, clueOverride } = useApp();
   const now = useNow();
 
   const countdown = event?.eventStartIso
@@ -43,7 +43,7 @@ export function ClueScreen() {
 
       <Text style={styles.label}>Your next clue</Text>
       <Text style={styles.stationName}>{currentStation?.name}</Text>
-      <Text style={styles.clue}>{currentStation?.clue}</Text>
+      <Text style={styles.clue}>{clueOverride ?? currentStation?.clue}</Text>
 
       <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('Scan', { mode: 'START' })}>
         <Text style={styles.buttonText}>Scan to start</Text>
