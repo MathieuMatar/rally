@@ -1,0 +1,110 @@
+:root {
+  font-family: system-ui, sans-serif;
+  color-scheme: dark;
+}
+
+body {
+  margin: 0;
+  background: #0f1b2d;
+  color: #fff;
+}
+
+.login {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100vh;
+  gap: 1rem;
+}
+
+.login form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 280px;
+}
+
+.login input {
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+  color: #fff;
+}
+
+.login button {
+  padding: 0.6rem 0.8rem;
+  font-size: 1rem;
+  border-radius: 8px;
+  border: none;
+  background: #3d7bff;
+  color: #fff;
+  cursor: pointer;
+}
+
+.login button:disabled {
+  opacity: 0.6;
+  cursor: default;
+}
+
+.error {
+  color: #ff6b6b;
+}
+
+.dashboard {
+  max-width: 960px;
+  margin: 0 auto;
+  padding: 1.5rem;
+}
+
+.dashboard header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+}
+
+.role {
+  text-transform: uppercase;
+  font-size: 0.8rem;
+  color: #9fb3c8;
+  letter-spacing: 0.05em;
+}
+
+.status-bar {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.9rem;
+}
+
+.status-live {
+  color: #5fd87a;
+}
+
+.status-polling {
+  color: #ffd27f;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+th,
+td {
+  text-align: left;
+  padding: 0.5rem 0.75rem;
+  border-bottom: 1px solid #233348;
+}
+
+.swatch {
+  display: inline-block;
+  width: 0.8rem;
+  height: 0.8rem;
+  border-radius: 50%;
+  margin-right: 0.5rem;
+  vertical-align: middle;
+}

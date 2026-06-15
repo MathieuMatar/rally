@@ -1,19 +1,29 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
-import type { SyncResponse } from '@rally/shared';
+import { SOCKET_EVENTS, type SyncResponse } from '@rally/shared';
 import { requireAuth, requireRole } from '../auth/middleware.js';
 import type { TeamTokenPayload } from '../auth/jwt.js';
+import type { RealtimeHub } from '../realtime.js';
 import { getTeamState } from '../state.js';
 import { applySyncEvent } from '../sync/apply.js';
 import { syncRequestSchema } from '../validation.js';
 
-export function syncRouter(db: Database.Database): Router {
+interface ProgressResultRow {
+  ended_at: number | null;
+  result: string | null;
+}
+
+export function syncRouter(db: Database.Database, hub?: RealtimeHub): Router {
   const router = Router();
 
   const insertEvent = db.prepare(`
     INSERT OR IGNORE INTO events (uuid, team_id, type, station_id, payload_json, client_ts, server_ts)
     VALUES (@uuid, @teamId, @type, @stationId, @payloadJson, @clientTs, @serverTs)
   `);
+
+  const getProgress = db.prepare<[string, string], ProgressResultRow>(
+    'SELECT ended_at, result FROM progress WHERE team_id = ? AND station_id = ?',
+  );
 
   router.post('/', requireAuth, requireRole('team'), (req, res) => {
     const parsed = syncRequestSchema.safeParse(req.body);
@@ -25,6 +35,7 @@ export function syncRouter(db: Database.Database): Router {
     const { teamId } = req.auth as TeamTokenPayload;
     const events = [...parsed.data.events].sort((a, b) => a.clientTs - b.clientTs);
     const accepted: string[] = [];
+    const completedStationIds: string[] = [];
 
     const run = db.transaction(() => {
       for (const event of events) {
@@ -41,15 +52,38 @@ export function syncRouter(db: Database.Database): Router {
 
         if (result.changes === 1) {
           applySyncEvent(db, teamId, event, serverTs);
+          if (event.type === 'scan_end' && event.stationId) {
+            completedStationIds.push(event.stationId);
+          }
         }
         accepted.push(event.uuid);
       }
     });
     run();
 
+    const state = getTeamState(db, teamId);
+
+    if (hub) {
+      for (const stationId of completedStationIds) {
+        const progress = getProgress.get(teamId, stationId);
+        hub.emitToOrganizers(SOCKET_EVENTS.TEAM_PROGRESS, {
+          teamId,
+          stationId,
+          result: progress?.result ?? 'completed',
+          at: progress?.ended_at ?? Date.now(),
+        });
+      }
+      if (completedStationIds.length > 0) {
+        hub.emitToTeam(teamId, SOCKET_EVENTS.STATE_UPDATE, {
+          score: state.score,
+          hintsRemaining: state.hintsRemaining,
+        });
+      }
+    }
+
     const response: SyncResponse = {
       accepted,
-      state: getTeamState(db, teamId),
+      state,
       serverTime: Date.now(),
     };
     res.json(response);

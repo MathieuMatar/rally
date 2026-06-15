@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import request from 'supertest';
+import { SOCKET_EVENTS } from '@rally/shared';
 import { loadSeedData } from '../src/seedData.js';
-import { buildTestApp } from './helpers.js';
+import { buildTestApp, FakeRealtimeHub } from './helpers.js';
 
 const data = loadSeedData();
 
@@ -63,6 +64,58 @@ describe('POST /sync', () => {
       .prepare('SELECT COUNT(*) as c FROM progress WHERE team_id = ?')
       .get(teamId) as { c: number };
     expect(progressCount.c).toBe(1);
+  });
+});
+
+describe('POST /sync — realtime emissions', () => {
+  it('emits team_progress to organizers and state_update to the team on scan_end', async () => {
+    const hub = new FakeRealtimeHub();
+    const { app } = buildTestApp(data, hub);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const events = [
+      { uuid: 'evt-start-2', type: 'scan_start' as const, stationId: 'ai_or_not', clientTs: 1_000 },
+      { uuid: 'evt-end-2', type: 'scan_end' as const, stationId: 'ai_or_not', clientTs: 31_000 },
+    ];
+
+    const res = await request(app)
+      .post('/sync')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ events });
+
+    expect(res.status).toBe(200);
+
+    expect(hub.toOrganizers).toHaveLength(1);
+    expect(hub.toOrganizers[0]).toMatchObject({
+      event: SOCKET_EVENTS.TEAM_PROGRESS,
+      payload: { teamId: 'red_a', stationId: 'ai_or_not', result: 'completed' },
+    });
+
+    expect(hub.toTeams).toHaveLength(1);
+    expect(hub.toTeams[0]).toMatchObject({
+      teamId: 'red_a',
+      event: SOCKET_EVENTS.STATE_UPDATE,
+      payload: { score: 100, hintsRemaining: data.event.helpHintsPerTeam },
+    });
+  });
+
+  it('does not emit anything for a batch with no scan_end', async () => {
+    const hub = new FakeRealtimeHub();
+    const { app } = buildTestApp(data, hub);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const events = [
+      { uuid: 'evt-start-3', type: 'scan_start' as const, stationId: 'ai_or_not', clientTs: 1_000 },
+    ];
+
+    const res = await request(app)
+      .post('/sync')
+      .set('Authorization', `Bearer ${token}`)
+      .send({ events });
+
+    expect(res.status).toBe(200);
+    expect(hub.toOrganizers).toHaveLength(0);
+    expect(hub.toTeams).toHaveLength(0);
   });
 });
 
