@@ -3,6 +3,8 @@ dist/
 build/
 *.db
 *.db-journal
+*.db-shm
+*.db-wal
 .env
 .expo/
 android/
