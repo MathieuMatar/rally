@@ -1,0 +1,31 @@
+{
+  "expo": {
+    "name": "Béatitudes Ados Rally",
+    "slug": "beatitudes-ados-rally",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "light",
+    "android": {
+      "package": "com.beatitudesados.rally",
+      "adaptiveIcon": {
+        "backgroundColor": "#E6F4FE",
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png"
+      },
+      "predictiveBackGestureEnabled": false,
+      "permissions": ["CAMERA", "ACCESS_FINE_LOCATION", "ACCESS_BACKGROUND_LOCATION", "CALL_PHONE"]
+    },
+    "plugins": [
+      "expo-location",
+      "expo-task-manager",
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "$(PRODUCT_NAME) needs access to your camera to scan station QR codes and capture challenge media."
+        }
+      ]
+    ]
+  }
+}
