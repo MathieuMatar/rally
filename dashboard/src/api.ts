@@ -1,4 +1,4 @@
-import type { AdminTeamSummary, AuthOrganizerRequest, AuthOrganizerResponse } from '@rally/shared';
+import type { AdminTeamSummary, AuthOrganizerRequest, AuthOrganizerResponse, Station } from '@rally/shared';
 import { SERVER_URL } from './config';
 
 export class ApiError extends Error {}
@@ -34,4 +34,17 @@ export async function fetchTeams(token: string): Promise<AdminTeamSummary[]> {
   }
 
   return (await response.json()) as AdminTeamSummary[];
+}
+
+/** Calls `GET /admin/stations`. */
+export async function fetchStations(token: string): Promise<Station[]> {
+  const response = await fetch(`${SERVER_URL}/admin/stations`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`Failed to load stations (${response.status}).`);
+  }
+
+  return (await response.json()) as Station[];
 }

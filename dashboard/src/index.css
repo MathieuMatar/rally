@@ -108,3 +108,87 @@ td {
   margin-right: 0.5rem;
   vertical-align: middle;
 }
+
+.tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+}
+
+.tab {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #3d5a80;
+  background: #16263d;
+  color: #fff;
+  cursor: pointer;
+  font-size: 0.9rem;
+}
+
+.tab.selected {
+  background: #3d7bff;
+  border-color: #3d7bff;
+}
+
+.map-view {
+  display: flex;
+  gap: 1rem;
+  height: 70vh;
+}
+
+.map-frame {
+  flex: 1;
+  border-radius: 8px;
+  overflow: hidden;
+}
+
+.map-iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+}
+
+.map-legend {
+  width: 220px;
+  flex-shrink: 0;
+}
+
+.map-legend h2 {
+  font-size: 1rem;
+  margin: 0 0 0.5rem;
+}
+
+.map-legend ul {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.team-button {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.4rem 0.5rem;
+  margin-bottom: 0.25rem;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #fff;
+  cursor: pointer;
+  text-align: left;
+  font-size: 0.9rem;
+}
+
+.team-button:hover {
+  background: #16263d;
+}
+
+.team-button.selected {
+  border-color: #3d7bff;
+  background: #16263d;
+}
+
+.map-hint {
+  font-size: 0.8rem;
+  color: #9fb3c8;
+}

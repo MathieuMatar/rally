@@ -17,6 +17,8 @@ import { enqueue } from '../db/outbox';
 import { getCompletedCount, getStartedAt, recordScanEnd, recordScanStart } from '../db/progress';
 import { loadRoute, saveRoute, saveStations } from '../db/route';
 import { getSetting, setSettings } from '../db/settings';
+import { LocationTracker } from '../location/locationTracker';
+import { LocationSocket } from '../realtime/locationSocket';
 import { SyncWorker } from '../sync/syncWorker';
 
 export type AppStatus = 'loading' | 'logged_out' | 'ready';
@@ -131,6 +133,26 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       worker.stop();
       syncWorkerRef.current = null;
+    };
+  }, [state.status]);
+
+  // While the team is logged in, push throttled GPS updates to organizers over Socket.IO.
+  useEffect(() => {
+    if (state.status !== 'ready') return undefined;
+
+    const serverUrl = getSetting('server_url');
+    const token = getSetting('token');
+    if (!serverUrl || !token) return undefined;
+
+    const socket = new LocationSocket(serverUrl, token);
+    socket.connect();
+
+    const tracker = new LocationTracker((lat, lng) => socket.sendLocation(lat, lng));
+    void tracker.start();
+
+    return () => {
+      tracker.stop();
+      socket.disconnect();
     };
   }, [state.status]);
 

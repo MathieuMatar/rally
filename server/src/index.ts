@@ -9,7 +9,7 @@ const db = openDb(config.dbPath);
 const seedData = loadSeedData();
 
 const httpServer = createServer();
-const hub = createRealtimeHub(httpServer);
+const hub = createRealtimeHub(httpServer, db);
 const app = createApp(db, seedData, hub);
 httpServer.on('request', app);
 

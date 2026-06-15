@@ -7,4 +7,5 @@ export type GameStackParamList = {
   Scan: { mode: 'START' | 'END' };
   Challenge: undefined;
   Complete: undefined;
+  Map: undefined;
 };

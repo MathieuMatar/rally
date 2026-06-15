@@ -6,6 +6,7 @@ import { ChallengeScreen } from '../screens/ChallengeScreen';
 import { ClueScreen } from '../screens/ClueScreen';
 import { CompleteScreen } from '../screens/CompleteScreen';
 import { LoginScreen } from '../screens/LoginScreen';
+import { MapScreen } from '../screens/MapScreen';
 import { ScanScreen } from '../screens/ScanScreen';
 import { useApp } from '../state/AppContext';
 import type { AuthStackParamList, GameStackParamList } from './types';
@@ -46,6 +47,7 @@ export function RootNavigator() {
           <GameStack.Screen name="Scan" component={ScanScreen} />
           <GameStack.Screen name="Challenge" component={ChallengeScreen} />
           <GameStack.Screen name="Complete" component={CompleteScreen} />
+          <GameStack.Screen name="Map" component={MapScreen} />
         </GameStack.Navigator>
       )}
     </NavigationContainer>

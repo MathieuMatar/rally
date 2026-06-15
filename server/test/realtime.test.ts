@@ -3,35 +3,41 @@ import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { io as ioClient } from 'socket.io-client';
 import request from 'supertest';
-import { SERVER_SCHEMA_SQL, SOCKET_EVENTS } from '@rally/shared';
+import { SERVER_SCHEMA_SQL, SOCKET_EVENTS, type SeedData } from '@rally/shared';
 import { createApp } from '../src/app.js';
 import { seedDatabase } from '../src/db/seed.js';
 import { createRealtimeHub } from '../src/realtime.js';
 import { loadSeedData } from '../src/seedData.js';
 
+async function setupRealtimeServer(data: SeedData) {
+  const db = new Database(':memory:');
+  db.exec(SERVER_SCHEMA_SQL);
+  seedDatabase(db, data);
+
+  const httpServer = createServer();
+  const hub = createRealtimeHub(httpServer, db);
+  const app = createApp(db, data, hub);
+  httpServer.on('request', app);
+
+  await new Promise<void>((resolve) => httpServer.listen(0, resolve));
+  const address = httpServer.address();
+  if (address === null || typeof address === 'string') {
+    throw new Error('Expected an AddressInfo from httpServer.address()');
+  }
+  const url = `http://localhost:${address.port}`;
+
+  const teamRes = await request(app).post('/auth/team').send({ code: 'REDA-2026' });
+  const teamToken = teamRes.body.token as string;
+  const orgRes = await request(app).post('/auth/organizer').send({ code: 'ORGANIZER-2026' });
+  const orgToken = orgRes.body.token as string;
+
+  return { db, app, httpServer, url, teamToken, orgToken };
+}
+
 describe('realtime hub (real sockets)', () => {
   it('delivers team_progress to organizers and state_update to the team on scan_end', async () => {
     const data = loadSeedData();
-    const db = new Database(':memory:');
-    db.exec(SERVER_SCHEMA_SQL);
-    seedDatabase(db, data);
-
-    const httpServer = createServer();
-    const hub = createRealtimeHub(httpServer);
-    const app = createApp(db, data, hub);
-    httpServer.on('request', app);
-
-    await new Promise<void>((resolve) => httpServer.listen(0, resolve));
-    const address = httpServer.address();
-    if (address === null || typeof address === 'string') {
-      throw new Error('Expected an AddressInfo from httpServer.address()');
-    }
-    const url = `http://localhost:${address.port}`;
-
-    const teamRes = await request(app).post('/auth/team').send({ code: 'REDA-2026' });
-    const teamToken = teamRes.body.token as string;
-    const orgRes = await request(app).post('/auth/organizer').send({ code: 'ORGANIZER-2026' });
-    const orgToken = orgRes.body.token as string;
+    const { app, httpServer, url, teamToken, orgToken } = await setupRealtimeServer(data);
 
     const teamSocket = ioClient(url, { transports: ['websocket'] });
     const orgSocket = ioClient(url, { transports: ['websocket'] });
@@ -67,6 +73,54 @@ describe('realtime hub (real sockets)', () => {
         result: 'completed',
       });
       await expect(stateUpdate).resolves.toMatchObject({ score: 100 });
+    } finally {
+      teamSocket.disconnect();
+      orgSocket.disconnect();
+      await new Promise<void>((resolve) => httpServer.close(() => resolve()));
+    }
+  });
+
+  it('relays a team\'s location to organizers as team_location and logs it', async () => {
+    const data = loadSeedData();
+    const { db, httpServer, url, teamToken, orgToken } = await setupRealtimeServer(data);
+
+    const teamSocket = ioClient(url, { transports: ['websocket'] });
+    const orgSocket = ioClient(url, { transports: ['websocket'] });
+
+    try {
+      await Promise.all([
+        new Promise<void>((resolve) => teamSocket.on('connect', () => resolve())),
+        new Promise<void>((resolve) => orgSocket.on('connect', () => resolve())),
+      ]);
+
+      teamSocket.emit(SOCKET_EVENTS.HELLO, { token: teamToken });
+      orgSocket.emit(SOCKET_EVENTS.HELLO, { token: orgToken });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+
+      const teamLocation = new Promise((resolve) => orgSocket.once(SOCKET_EVENTS.TEAM_LOCATION, resolve));
+
+      teamSocket.emit(SOCKET_EVENTS.LOCATION, { lat: 34.18, lng: 35.67, battery: 80 });
+
+      await expect(teamLocation).resolves.toMatchObject({
+        teamId: 'red_a',
+        lat: 34.18,
+        lng: 35.67,
+        battery: 80,
+      });
+
+      await new Promise((resolve) => setTimeout(resolve, 50));
+      const row = db
+        .prepare('SELECT device_id, role, team_id, lat, lng, battery FROM locations WHERE team_id = ?')
+        .get('red_a');
+      expect(row).toMatchObject({
+        device_id: 'red_a',
+        role: 'team',
+        team_id: 'red_a',
+        lat: 34.18,
+        lng: 35.67,
+        battery: 80,
+      });
     } finally {
       teamSocket.disconnect();
       orgSocket.disconnect();

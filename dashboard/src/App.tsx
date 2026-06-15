@@ -1,8 +1,11 @@
 import { useState } from 'react';
 import type { Role } from '@rally/shared';
 import { LoginScreen } from './LoginScreen';
+import { MapView } from './MapView';
 import { Scoreboard } from './Scoreboard';
 import { useLiveTeams } from './useLiveTeams';
+
+type View = 'scoreboard' | 'map';
 
 interface Session {
   token: string;
@@ -21,6 +24,7 @@ export function App() {
 
 function Dashboard({ session }: { session: Session }) {
   const live = useLiveTeams(session.token);
+  const [view, setView] = useState<View>('scoreboard');
 
   return (
     <div className="dashboard">
@@ -28,7 +32,15 @@ function Dashboard({ session }: { session: Session }) {
         <h1>Live It — Scoreboard</h1>
         <span className="role">{session.role}</span>
       </header>
-      <Scoreboard {...live} />
+      <nav className="tabs">
+        <button className={view === 'scoreboard' ? 'tab selected' : 'tab'} onClick={() => setView('scoreboard')}>
+          Scoreboard
+        </button>
+        <button className={view === 'map' ? 'tab selected' : 'tab'} onClick={() => setView('map')}>
+          Map
+        </button>
+      </nav>
+      {view === 'scoreboard' ? <Scoreboard {...live} /> : <MapView token={session.token} teams={live.teams} />}
     </div>
   );
 }

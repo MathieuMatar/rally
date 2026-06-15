@@ -35,6 +35,10 @@ export function ClueScreen() {
         </View>
       </View>
 
+      <TouchableOpacity style={styles.mapLink} onPress={() => navigation.navigate('Map')}>
+        <Text style={styles.mapLinkText}>View map</Text>
+      </TouchableOpacity>
+
       {crossingCategory ? (
         <View style={styles.notice}>
           <Text style={styles.noticeText}>Long walk to the other area — stay together!</Text>
@@ -78,6 +82,15 @@ const styles = StyleSheet.create({
   },
   statValueAlert: {
     color: '#FF6B6B',
+  },
+  mapLink: {
+    alignSelf: 'flex-end',
+    marginBottom: 16,
+  },
+  mapLinkText: {
+    color: '#3D7BFF',
+    fontSize: 14,
+    fontWeight: '600',
   },
   notice: {
     backgroundColor: '#3D2C1B',

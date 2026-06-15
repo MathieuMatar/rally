@@ -1,8 +1,8 @@
 import { Router } from 'express';
 import type Database from 'better-sqlite3';
-import type { AdminTeamSummary, ProgressEntry } from '@rally/shared';
+import type { AdminTeamSummary, ProgressEntry, Station } from '@rally/shared';
 import { requireAuth, requireRole } from '../auth/middleware.js';
-import type { TeamRow } from '../db/rows.js';
+import { stationRowToStation, type StationRow, type TeamRow } from '../db/rows.js';
 
 interface ProgressRow {
   station_id: string;
@@ -49,6 +49,14 @@ export function adminRouter(db: Database.Database): Router {
     });
 
     res.json(summaries);
+  });
+
+  router.get('/stations', requireAuth, requireRole('organizer', 'admin'), (_req, res) => {
+    const stations: Station[] = db
+      .prepare<[], StationRow>('SELECT * FROM stations')
+      .all()
+      .map(stationRowToStation);
+    res.json(stations);
   });
 
   return router;

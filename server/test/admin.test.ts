@@ -84,3 +84,31 @@ describe('GET /admin/teams', () => {
     expect(res.body).toHaveLength(data.teams.length);
   });
 });
+
+describe('GET /admin/stations', () => {
+  it('rejects a team token', async () => {
+    const { app } = buildTestApp(data);
+    const token = await teamToken(app, 'REDA-2026');
+
+    const res = await request(app).get('/admin/stations').set('Authorization', `Bearer ${token}`);
+
+    expect(res.status).toBe(403);
+  });
+
+  it('returns all 11 stations with coordinates and category for organizer/admin tokens', async () => {
+    const { app } = buildTestApp(data);
+    const orgToken = await organizerToken(app, 'ORGANIZER-2026');
+
+    const res = await request(app).get('/admin/stations').set('Authorization', `Bearer ${orgToken}`);
+
+    expect(res.status).toBe(200);
+    expect(res.body).toHaveLength(data.stations.length);
+    expect(res.body[0]).toMatchObject({
+      id: expect.any(String),
+      name: expect.any(String),
+      category: expect.stringMatching(/^cat[12]$/),
+      lat: expect.any(Number),
+      lng: expect.any(Number),
+    });
+  });
+});
