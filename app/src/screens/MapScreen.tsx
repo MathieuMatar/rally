@@ -50,8 +50,11 @@ export function MapScreen() {
     post({ type: 'trail', stationIds: visited.map((s) => s.id), color: team?.color ?? '#3D7BFF' });
   }, [ready, team]);
 
+  const gpsPositionsRef = useRef<{ lat: number; lng: number }[]>([]);
+
   useEffect(() => {
     let subscription: Location.LocationSubscription | null = null;
+    gpsPositionsRef.current = [];
 
     void (async () => {
       const { status } = await Location.getForegroundPermissionsAsync();
@@ -60,13 +63,20 @@ export function MapScreen() {
       subscription = await Location.watchPositionAsync(
         { accuracy: Location.Accuracy.Balanced, timeInterval: 5_000, distanceInterval: 5 },
         (location) => {
+          const pos = { lat: location.coords.latitude, lng: location.coords.longitude };
+          gpsPositionsRef.current = [...gpsPositionsRef.current, pos];
+          post({
+            type: 'gpsTrail',
+            positions: gpsPositionsRef.current,
+            color: team?.color ?? '#3D7BFF',
+          });
           post({
             type: 'pins',
             pins: [
               {
                 id: team?.id ?? 'me',
-                lat: location.coords.latitude,
-                lng: location.coords.longitude,
+                lat: pos.lat,
+                lng: pos.lng,
                 color: team?.color ?? '#3D7BFF',
                 label: 'You',
               },
@@ -76,7 +86,10 @@ export function MapScreen() {
       );
     })();
 
-    return () => subscription?.remove();
+    return () => {
+      subscription?.remove();
+      gpsPositionsRef.current = [];
+    };
   }, [team]);
 
   function onMessage(event: WebViewMessageEvent) {

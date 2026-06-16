@@ -20,7 +20,8 @@ export interface MapPin {
 export type MapCommand =
   | { type: 'init'; stations: MapStationInput[] }
   | { type: 'trail'; stationIds: string[]; color: string }
-  | { type: 'pins'; pins: MapPin[] };
+  | { type: 'pins'; pins: MapPin[] }
+  | { type: 'gpsTrail'; positions: { lat: number; lng: number }[]; color: string };
 
 /** Messages the map page posts back to its host. */
 export type MapHostMessage = { type: 'ready' };
@@ -68,6 +69,7 @@ export function buildMapHtml(tileConfig: MapTileConfig = {}): string {
       var stationMarkers = {};
       var trailLayer = null;
       var pinsLayer = null;
+      var gpsTrailLayer = null;
 
       function notifyHost(message) {
         var json = JSON.stringify(message);
@@ -78,9 +80,10 @@ export function buildMapHtml(tileConfig: MapTileConfig = {}): string {
       function ensureMap() {
         if (map) return;
         map = L.map('map');
-        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}.png', {
           maxZoom: 19,
-          attribution: '&copy; OpenStreetMap contributors',
+          subdomains: 'abcd',
+          attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
         }).addTo(map);
         if (LOCAL_TILE_URL) {
           L.tileLayer(LOCAL_TILE_URL + '/{z}/{x}/{y}.png', {
@@ -136,6 +139,16 @@ export function buildMapHtml(tileConfig: MapTileConfig = {}): string {
         }
       }
 
+      function setGpsTrail(positions, color) {
+        if (gpsTrailLayer) {
+          map.removeLayer(gpsTrailLayer);
+          gpsTrailLayer = null;
+        }
+        if (positions.length < 2) return;
+        var latlngs = positions.map(function (p) { return [p.lat, p.lng]; });
+        gpsTrailLayer = L.polyline(latlngs, { color: color, weight: 2, opacity: 0.6, dashArray: '4 4' }).addTo(map);
+      }
+
       function setPins(pins) {
         if (pinsLayer) {
           map.removeLayer(pinsLayer);
@@ -169,6 +182,7 @@ export function buildMapHtml(tileConfig: MapTileConfig = {}): string {
         if (data.type === 'init') init(data.stations);
         else if (data.type === 'trail') setTrail(data.stationIds, data.color);
         else if (data.type === 'pins') setPins(data.pins);
+        else if (data.type === 'gpsTrail') setGpsTrail(data.positions, data.color);
       }
 
       window.addEventListener('message', handleMessage);

@@ -113,6 +113,26 @@ export function adminRouter(db: Database.Database, hub?: RealtimeHub): Router {
     res.json(summaries);
   });
 
+  router.get('/locations', requireAuth, requireRole('organizer', 'admin'), (_req, res) => {
+    interface LocationRow {
+      team_id: string;
+      lat: number;
+      lng: number;
+      battery: number | null;
+      at: number;
+    }
+    const rows = db
+      .prepare<[], LocationRow>(
+        `SELECT l.team_id, l.lat, l.lng, l.battery, l.at
+         FROM locations l
+         INNER JOIN (
+           SELECT team_id, MAX(at) AS max_at FROM locations GROUP BY team_id
+         ) latest ON l.team_id = latest.team_id AND l.at = latest.max_at`,
+      )
+      .all();
+    res.json(rows.map((r) => ({ teamId: r.team_id, lat: r.lat, lng: r.lng, battery: r.battery, at: r.at })));
+  });
+
   router.get('/stations', requireAuth, requireRole('organizer', 'admin'), (_req, res) => {
     const stations: Station[] = db
       .prepare<[], StationRow>('SELECT * FROM stations')

@@ -49,6 +49,19 @@ export async function fetchTeams(token: string): Promise<AdminTeamSummary[]> {
   return (await response.json()) as AdminTeamSummary[];
 }
 
+/** Calls `GET /admin/locations` — returns the most recent location per team from the server DB. */
+export async function fetchLocations(token: string): Promise<{ teamId: string; lat: number; lng: number; battery: number | null; at: number }[]> {
+  const response = await fetch(`${SERVER_URL}/admin/locations`, {
+    headers: { Authorization: `Bearer ${token}` },
+  });
+
+  if (!response.ok) {
+    throw new ApiError(`Failed to load locations (${response.status}).`);
+  }
+
+  return (await response.json()) as { teamId: string; lat: number; lng: number; battery: number | null; at: number }[];
+}
+
 /** Calls `GET /admin/stations`. */
 export async function fetchStations(token: string): Promise<Station[]> {
   const response = await fetch(`${SERVER_URL}/admin/stations`, {
