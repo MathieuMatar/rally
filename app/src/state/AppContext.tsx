@@ -30,6 +30,7 @@ import { loadRoute, saveRoute, saveStations } from '../db/route';
 import { getSetting, setSettings } from '../db/settings';
 import { LocationTracker } from '../location/locationTracker';
 import { LocationSocket } from '../realtime/locationSocket';
+import { WebRTCSession, type CallState, type CallType } from '../realtime/webrtcSession';
 import { SyncWorker } from '../sync/syncWorker';
 
 const MIN_EXIT_AWAY_SEC = 2;
@@ -56,12 +57,18 @@ export interface AppContextValue extends AppState {
   currentStation: Station | null;
   crossingCategory: boolean;
   finished: boolean;
+  callState: CallState;
+  callType: CallType | null;
+  callMuted: boolean;
   login(code: string): Promise<boolean>;
   scanStart(rawCode: string): ScanResult;
   scanEnd(rawCode: string): ScanResult;
   requestHelp(): void;
   sendSos(): void;
   markExpectingCall(): void;
+  startCall(type: CallType): Promise<void>;
+  endCall(): void;
+  toggleMute(): void;
 }
 
 const INITIAL_STATE: AppState = {
@@ -98,6 +105,11 @@ function loadEventConfig(): EventConfig {
 
 export function AppProvider({ children }: { children: React.ReactNode }) {
   const [state, setState] = useState<AppState>(INITIAL_STATE);
+  const [callState, setCallState] = useState<CallState>('idle');
+  const [callType, setCallType] = useState<CallType | null>(null);
+  const [callMuted, setCallMuted] = useState(false);
+  const webrtcSessionRef = useRef<WebRTCSession | null>(null);
+  const socketRef = useRef<LocationSocket | null>(null);
 
   // Cold start: rebuild everything from local SQLite — never from the network.
   useEffect(() => {
@@ -187,8 +199,22 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       onClueOverride: (text) => {
         setState((s) => ({ ...s, clueOverride: text }));
       },
+      onCallAnswer: (payload) => {
+        void webrtcSessionRef.current?.handleAnswer(payload.sdp);
+      },
+      onCallIce: (payload) => {
+        void webrtcSessionRef.current?.handleIce(payload.candidate);
+      },
+      onCallEnd: () => {
+        webrtcSessionRef.current?.cleanup();
+        webrtcSessionRef.current = null;
+        setCallState('idle');
+        setCallType(null);
+        setCallMuted(false);
+      },
     });
     socket.connect();
+    socketRef.current = socket;
 
     const tracker = new LocationTracker((lat, lng) => {
       setState((s) => ({ ...s, lastLocation: { lat, lng } }));
@@ -199,6 +225,7 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     return () => {
       tracker.stop();
       socket.disconnect();
+      socketRef.current = null;
     };
   }, [state.status]);
 
@@ -367,10 +394,47 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
     syncWorkerRef.current?.triggerNow();
   }, [state.lastLocation]);
 
-  // Call HQ/Call Emergency call this right before dialing so the next background transition
-  // (the call itself) isn't logged as an exit.
+  // markExpectingCall is no longer used for phone calls but kept in case of future use.
   const markExpectingCall = useCallback(() => {
     expectingCallRef.current = true;
+  }, []);
+
+  const startCall = useCallback(async (type: CallType): Promise<void> => {
+    const socket = socketRef.current;
+    const teamId = state.team?.id;
+    const teamName = state.team?.name;
+    if (!socket || !teamId || !teamName || callState !== 'idle') return;
+
+    setCallType(type);
+    if (type === 'emergency') sendSos();
+
+    const callId = generateUuid();
+    const session = new WebRTCSession(socket, teamId, teamName, (newState) => {
+      setCallState(newState);
+      if (newState === 'idle') {
+        webrtcSessionRef.current = null;
+        setCallType(null);
+        setCallMuted(false);
+      }
+    });
+    webrtcSessionRef.current = session;
+    await session.start(callId, type);
+  }, [state.team, callState, sendSos]);
+
+  const endCall = useCallback(() => {
+    webrtcSessionRef.current?.end();
+    webrtcSessionRef.current = null;
+    setCallState('idle');
+    setCallType(null);
+    setCallMuted(false);
+  }, []);
+
+  const toggleMute = useCallback(() => {
+    setCallMuted((m) => {
+      const next = !m;
+      webrtcSessionRef.current?.setMuted(next);
+      return next;
+    });
   }, []);
 
   const value = useMemo<AppContextValue>(() => {
@@ -380,14 +444,20 @@ export function AppProvider({ children }: { children: React.ReactNode }) {
       currentStation,
       crossingCategory: state.routeState ? isCrossingCategory(state.routeState) : false,
       finished: state.routeState ? isFinished(state.routeState) : false,
+      callState,
+      callType,
+      callMuted,
       login,
       scanStart,
       scanEnd,
       requestHelp,
       sendSos,
       markExpectingCall,
+      startCall,
+      endCall,
+      toggleMute,
     };
-  }, [state, login, scanStart, scanEnd, requestHelp, sendSos, markExpectingCall]);
+  }, [state, callState, callType, callMuted, login, scanStart, scanEnd, requestHelp, sendSos, markExpectingCall, startCall, endCall, toggleMute]);
 
   return <AppContext.Provider value={value}>{children}</AppContext.Provider>;
 }

@@ -32,6 +32,11 @@ export const SOCKET_EVENTS = {
   TEAM_LOCATION: 'team_location',
   ALERT: 'alert',
   EXIT_LOGGED: 'exit_logged',
+  // WebRTC audio call signaling (team <-> organizers, relayed by server)
+  CALL_OFFER: 'call_offer',   // team -> organizers: { callId, callType, teamId, teamName, sdp }
+  CALL_ANSWER: 'call_answer', // organizer -> team:  { callId, toTeamId, sdp }
+  CALL_ICE: 'call_ice',       // both ways:          { callId, candidate, toTeamId?, fromTeamId? }
+  CALL_END: 'call_end',       // both ways:          { callId, toTeamId? }
 } as const;
 
 export type SocketEventName = (typeof SOCKET_EVENTS)[keyof typeof SOCKET_EVENTS];

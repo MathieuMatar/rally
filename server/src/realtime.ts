@@ -86,6 +86,44 @@ export function createRealtimeHub(httpServer: HttpServer, db: Database.Database)
         at,
       });
     });
+
+    // ── WebRTC call signaling relay ──────────────────────────────────────────
+    socket.on(SOCKET_EVENTS.CALL_OFFER, (data: unknown) => {
+      if (!auth || auth.role !== 'team') return;
+      io.to(ORGANIZERS_ROOM).emit(SOCKET_EVENTS.CALL_OFFER, {
+        ...(data as object),
+        teamId: auth.teamId,
+      });
+    });
+
+    socket.on(SOCKET_EVENTS.CALL_ICE, (data: unknown) => {
+      if (!auth) return;
+      const payload = data as { callId?: string; candidate?: unknown; toTeamId?: string };
+      if (auth.role === 'team') {
+        io.to(ORGANIZERS_ROOM).emit(SOCKET_EVENTS.CALL_ICE, { ...payload, fromTeamId: auth.teamId });
+      } else if (payload.toTeamId) {
+        io.to(teamRoom(payload.toTeamId)).emit(SOCKET_EVENTS.CALL_ICE, payload);
+      }
+    });
+
+    socket.on(SOCKET_EVENTS.CALL_ANSWER, (data: unknown) => {
+      if (!auth || auth.role === 'team') return;
+      const payload = data as { callId?: string; toTeamId?: string; sdp?: unknown };
+      if (!payload.toTeamId) return;
+      io.to(teamRoom(payload.toTeamId)).emit(SOCKET_EVENTS.CALL_ANSWER, payload);
+      // Let other organizers know the call was taken so they can dismiss the ringing UI.
+      socket.to(ORGANIZERS_ROOM).emit(SOCKET_EVENTS.CALL_END, { callId: payload.callId, accepted: true });
+    });
+
+    socket.on(SOCKET_EVENTS.CALL_END, (data: unknown) => {
+      if (!auth) return;
+      const payload = data as { callId?: string; toTeamId?: string };
+      if (auth.role === 'team') {
+        io.to(ORGANIZERS_ROOM).emit(SOCKET_EVENTS.CALL_END, payload);
+      } else if (payload.toTeamId) {
+        io.to(teamRoom(payload.toTeamId)).emit(SOCKET_EVENTS.CALL_END, payload);
+      }
+    });
   });
 
   return {

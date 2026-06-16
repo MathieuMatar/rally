@@ -1,38 +1,28 @@
 import type { NativeStackNavigationProp } from '@react-navigation/native-stack';
 import { useNavigation } from '@react-navigation/native';
 import React, { useState } from 'react';
-import { Alert, Linking, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import type { GameStackParamList } from '../navigation/types';
 import { useApp } from '../state/AppContext';
 
-/**
- * DECISION: the spec calls for a true Android `ACTION_CALL` intent (dials without opening the
- * dialer). That requires a native module + build config change we can't add or test in this
- * environment, so we use `Linking.openURL('tel:...')` (ACTION_DIAL/VIEW) instead — it opens the
- * phone app with the number pre-filled and still uses the voice network on patchy data. Simplest
- * robust option per the project ground rules.
- */
-function callNumber(phone: string): void {
-  if (!phone) return;
-  void Linking.openURL(`tel:${phone}`);
-}
-
 export function ContactScreen() {
   const navigation = useNavigation<NativeStackNavigationProp<GameStackParamList, 'Contact'>>();
-  const { event, hintsRemaining, sosAckedAt, requestHelp, sendSos, markExpectingCall } = useApp();
+  const {
+    hintsRemaining, sosAckedAt,
+    callState, callType, callMuted,
+    requestHelp, sendSos,
+    startCall, endCall, toggleMute,
+  } = useApp();
   const [helpRequested, setHelpRequested] = useState(false);
   const [sosSentAt, setSosSentAt] = useState<number | null>(null);
 
   const handleCallHq = () => {
-    markExpectingCall();
-    callNumber(event?.hqPhone ?? '');
+    void startCall('hq');
   };
 
   const handleCallEmergency = () => {
-    markExpectingCall();
-    sendSos();
     setSosSentAt(Date.now());
-    callNumber(event?.emergencyPhone ?? '');
+    void startCall('emergency'); // startCall('emergency') calls sendSos() internally
   };
 
   const handleStuck = () => {
@@ -43,6 +33,33 @@ export function ContactScreen() {
 
   const sosAcked = sosSentAt != null && sosAckedAt != null && sosAckedAt >= sosSentAt;
 
+  // ── In-call screen ──────────────────────────────────────────────────────────
+  if (callState === 'dialing' || callState === 'connected') {
+    const label = callType === 'emergency' ? 'Emergency' : 'HQ';
+    return (
+      <View style={styles.container}>
+        <Text style={styles.callStatus}>
+          {callState === 'dialing' ? `Calling ${label}…` : `In call with ${label}`}
+        </Text>
+        {callState === 'connected' && (
+          <Text style={styles.callConnected}>Connected</Text>
+        )}
+        <View style={styles.callControls}>
+          <TouchableOpacity
+            style={[styles.callControlBtn, callMuted && styles.callControlBtnActive]}
+            onPress={toggleMute}
+          >
+            <Text style={styles.callControlText}>{callMuted ? 'Unmute' : 'Mute'}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.callControlBtn, styles.endCallBtn]} onPress={endCall}>
+            <Text style={styles.callControlText}>End Call</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    );
+  }
+
+  // ── Idle screen ─────────────────────────────────────────────────────────────
   return (
     <View style={styles.container}>
       <TouchableOpacity style={styles.back} onPress={() => navigation.goBack()}>
@@ -76,10 +93,12 @@ const styles = StyleSheet.create({
     flexGrow: 1,
     padding: 24,
     backgroundColor: '#0F1B2D',
+    justifyContent: 'center',
   },
   back: {
-    alignSelf: 'flex-start',
-    marginBottom: 16,
+    position: 'absolute',
+    top: 24,
+    left: 24,
   },
   backText: {
     color: '#3D7BFF',
@@ -103,15 +122,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 16,
   },
-  callButton: {
-    backgroundColor: '#3D7BFF',
-  },
-  emergencyButton: {
-    backgroundColor: '#FF6B6B',
-  },
-  stuckButton: {
-    backgroundColor: '#3D5A80',
-  },
+  callButton: { backgroundColor: '#3D7BFF' },
+  emergencyButton: { backgroundColor: '#FF6B6B' },
+  stuckButton: { backgroundColor: '#3D5A80' },
   buttonText: {
     color: '#fff',
     fontSize: 22,
@@ -123,5 +136,43 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginTop: -8,
     marginBottom: 16,
+  },
+  // In-call styles
+  callStatus: {
+    color: '#fff',
+    fontSize: 28,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 12,
+  },
+  callConnected: {
+    color: '#4CAF50',
+    fontSize: 16,
+    textAlign: 'center',
+    marginBottom: 48,
+  },
+  callControls: {
+    flexDirection: 'row',
+    gap: 16,
+    justifyContent: 'center',
+    marginTop: 16,
+  },
+  callControlBtn: {
+    flex: 1,
+    borderRadius: 12,
+    paddingVertical: 20,
+    alignItems: 'center',
+    backgroundColor: '#1C2C42',
+  },
+  callControlBtnActive: {
+    backgroundColor: '#3D5A80',
+  },
+  endCallBtn: {
+    backgroundColor: '#FF6B6B',
+  },
+  callControlText: {
+    color: '#fff',
+    fontSize: 18,
+    fontWeight: '600',
   },
 });

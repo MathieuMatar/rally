@@ -384,3 +384,68 @@ td {
   font-size: 0.8rem;
   color: #9fb3c8;
 }
+
+/* ── WebRTC call panel ──────────────────────────────────────────────────── */
+.call-panel {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  animation: callPulse 1.5s ease-in-out infinite;
+}
+
+.call-panel--ringing {
+  background: #1a2f1a;
+  border: 2px solid #4caf50;
+}
+
+.call-panel--active {
+  background: #16263d;
+  border: 2px solid #3d7bff;
+  animation: none;
+}
+
+@keyframes callPulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.75; }
+}
+
+.call-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.call-label {
+  font-weight: 700;
+  font-size: 1rem;
+  color: #fff;
+}
+
+.call-team {
+  font-size: 0.9rem;
+  color: #9fb3c8;
+}
+
+.call-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.call-btn {
+  padding: 0.5rem 1.2rem;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  color: #fff;
+}
+
+.call-btn--accept  { background: #4caf50; }
+.call-btn--reject  { background: #e53935; }
+.call-btn--mute    { background: #3d5a80; }
+.call-btn--mute.active { background: #5a7da0; }
