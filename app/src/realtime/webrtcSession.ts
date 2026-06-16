@@ -1,3 +1,4 @@
+import { PermissionsAndroid } from 'react-native';
 import { mediaDevices, RTCIceCandidate, RTCPeerConnection, RTCSessionDescription } from 'react-native-webrtc';
 import type { LocationSocket } from './locationSocket';
 
@@ -29,6 +30,11 @@ export class WebRTCSession {
 
   async start(callId: string, callType: CallType): Promise<void> {
     this.callId = callId;
+
+    const granted = await PermissionsAndroid.request(PermissionsAndroid.PERMISSIONS.RECORD_AUDIO);
+    if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+      throw new Error('Microphone permission denied');
+    }
 
     this.stream = await mediaDevices.getUserMedia({ audio: true, video: false });
 

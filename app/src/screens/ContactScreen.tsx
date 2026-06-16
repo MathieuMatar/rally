@@ -17,12 +17,16 @@ export function ContactScreen() {
   const [sosSentAt, setSosSentAt] = useState<number | null>(null);
 
   const handleCallHq = () => {
-    void startCall('hq');
+    startCall('hq').catch(() => {
+      Alert.alert('Could not start call', 'Microphone permission is required. Please allow it in Settings.');
+    });
   };
 
   const handleCallEmergency = () => {
     setSosSentAt(Date.now());
-    void startCall('emergency'); // startCall('emergency') calls sendSos() internally
+    startCall('emergency').catch(() => {
+      Alert.alert('Could not start call', 'Microphone permission is required. Please allow it in Settings.');
+    });
   };
 
   const handleStuck = () => {
